@@ -7,8 +7,6 @@ import {
   Modal,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -120,7 +118,6 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
       <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity
@@ -160,7 +157,6 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               />
             )}
           </View>
-        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );

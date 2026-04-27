@@ -7,8 +7,6 @@ import {
   Modal,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HealthEvent, Profile } from '../types';
@@ -38,7 +36,6 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose}>
               <Text style={styles.closeBtn}>✕</Text>
@@ -53,7 +50,6 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({
             onSave={handleSave}
             onCancel={onClose}
           />
-        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );

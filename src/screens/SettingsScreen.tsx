@@ -268,6 +268,14 @@ export default function SettingsScreen() {
           </Text>
         </View>
 
+        {/* DEBUG — à supprimer avant release */}
+        <TouchableOpacity
+          onPress={() => { throw new Error('Test Sentry crash from Healthlog'); }}
+          style={styles.debugBtn}
+        >
+          <Text style={styles.debugBtnText}>🐛 Tester Sentry (debug)</Text>
+        </TouchableOpacity>
+
         <View style={{ height: 80 }} />
       </ScrollView>
     </SafeAreaView>
@@ -321,4 +329,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
   },
+  debugBtn: {
+    marginTop: Spacing.xl,
+    padding: Spacing.md,
+    backgroundColor: Colors.danger,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+  },
+  debugBtnText: { color: Colors.white, fontWeight: '700', fontSize: 14 },
 });

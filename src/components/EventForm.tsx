@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TextInput,
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Platform,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { EventType, Profile, HealthEvent, EVENT_TYPE_ICONS, EVENT_TYPE_LABELS, TEMPERATURE_METHOD_LABELS } from '../types';
 import { Colors, Typography, Spacing, Radius } from '../utils/theme';
 import { Button, Avatar, IntensityPicker } from './UI';
@@ -99,7 +100,15 @@ export const EventForm: React.FC<EventFormProps> = ({
   };
 
   return (
-    <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <KeyboardAwareScrollView
+      style={styles.scroll}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ padding: Spacing.lg, paddingBottom: 100 }}
+      enableOnAndroid
+      enableAutomaticScroll
+      extraScrollHeight={Platform.OS === 'ios' ? 100 : 0}
+    >
       {/* Profile + type context */}
       <View style={styles.formHeader}>
         <Avatar name={profile.display_name} color={profile.color} size={28} />
@@ -237,6 +246,8 @@ export const EventForm: React.FC<EventFormProps> = ({
           placeholderTextColor={Colors.textMuted}
           multiline
           numberOfLines={3}
+          scrollEnabled={false}
+          textAlignVertical="top"
         />
       </View>
 
@@ -247,13 +258,12 @@ export const EventForm: React.FC<EventFormProps> = ({
       </View>
 
       <Button label="Enregistrer" onPress={handleSave} fullWidth style={{ marginBottom: Spacing.xl }} />
-      <View style={{ height: 20 }} />
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, padding: Spacing.lg },
+  scroll: { flex: 1 },
   formHeader: {
     flexDirection: 'row',
     alignItems: 'center',

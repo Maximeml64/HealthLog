@@ -1,6 +1,7 @@
 // src/screens/ProfilesScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Modal, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Modal, Alert, Platform } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -132,10 +133,18 @@ export default function ProfilesScreen() {
             <Text style={styles.modalTitle}>{editProfile ? 'Modifier' : 'Nouveau profil'}</Text>
             <TouchableOpacity onPress={handleSave}><Text style={styles.modalSave}>Enregistrer</Text></TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: Spacing.lg }}>
+          <KeyboardAwareScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: Spacing.lg, paddingBottom: 100 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            enableOnAndroid
+            enableAutomaticScroll
+            extraScrollHeight={Platform.OS === 'ios' ? 100 : 0}
+          >
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>NOM</Text>
-              <TextInput style={styles.input} value={form.display_name} onChangeText={(v) => setForm({ ...form, display_name: v })} placeholder="Prénom ou surnom" placeholderTextColor={Colors.textMuted} />
+              <TextInput style={styles.input} value={form.display_name} onChangeText={(v) => setForm({ ...form, display_name: v })} placeholder="Prénom ou surnom" placeholderTextColor={Colors.textMuted} returnKeyType="next" />
             </View>
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>LIEN FAMILIAL</Text>
@@ -178,9 +187,9 @@ export default function ProfilesScreen() {
             />
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>NOTES</Text>
-              <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} value={form.notes} onChangeText={(v) => setForm({ ...form, notes: v })} placeholder="Informations utiles…" placeholderTextColor={Colors.textMuted} multiline />
+              <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} value={form.notes} onChangeText={(v) => setForm({ ...form, notes: v })} placeholder="Informations utiles…" placeholderTextColor={Colors.textMuted} multiline returnKeyType="done" scrollEnabled={false} textAlignVertical="top" />
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>

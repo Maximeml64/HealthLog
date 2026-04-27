@@ -11,7 +11,9 @@ import {
   Modal,
   Alert,
   Switch,
+  Platform,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '../stores/useAppStore';
 import { Reminder, RecurrenceRule, RecurrenceFrequency } from '../types';
@@ -251,7 +253,15 @@ export default function RemindersScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={{ padding: Spacing.lg }}>
+          <KeyboardAwareScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: Spacing.lg, paddingBottom: 100 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            enableOnAndroid
+            enableAutomaticScroll
+            extraScrollHeight={Platform.OS === 'ios' ? 100 : 0}
+          >
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>MEMBRE</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
@@ -275,6 +285,7 @@ export default function RemindersScreen() {
                 onChangeText={(v) => setForm({ ...form, title: v })}
                 placeholder="Médicament, RDV…"
                 placeholderTextColor={Colors.textMuted}
+                returnKeyType="next"
               />
             </View>
 
@@ -287,6 +298,9 @@ export default function RemindersScreen() {
                 placeholder="Détails du rappel…"
                 placeholderTextColor={Colors.textMuted}
                 multiline
+                returnKeyType="done"
+                scrollEnabled={false}
+                textAlignVertical="top"
               />
             </View>
 
@@ -368,7 +382,7 @@ export default function RemindersScreen() {
                 </Text>
               </>
             )}
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>

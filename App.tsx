@@ -1,18 +1,61 @@
 // App.tsx
-import React, { useEffect } from 'react';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 1.0,
+  enableAutoSessionTracking: true,
+  sendDefaultPii: false,
+  enabled: !__DEV__,
+});
+
+import React, { useEffect, useState } from 'react';
+import { View, ActivityIndicator, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { useAppStore } from './src/stores/useAppStore';
 import RootNavigator from './src/navigation/RootNavigator';
 import { ensurePhotoDir } from './src/services/PhotoService';
+import { Colors, Spacing } from './src/utils/theme';
 
-export default function App() {
+function App() {
   const loadAll = useAppStore((s) => s.loadAll);
+  const loading = useAppStore((s) => s.loading);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    ensurePhotoDir();
-    loadAll();
-  }, []);
+  const init = async () => {
+    setError(null);
+    try {
+      await ensurePhotoDir();
+      await loadAll();
+    } catch (e) {
+      Sentry.captureException(e, {
+        tags: { context: 'app_initialization' },
+      });
+      setError(e instanceof Error ? e.message : 'Impossible de charger les données.');
+    }
+  };
+
+  useEffect(() => { init(); }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>⚠️ {error}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={init}>
+          <Text style={styles.retryText}>Réessayer</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
@@ -21,3 +64,12 @@ export default function App() {
     </NavigationContainer>
   );
 }
+
+export default Sentry.wrap(App);
+
+const styles = StyleSheet.create({
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.background },
+  errorText: { fontSize: 15, color: Colors.text, textAlign: 'center', marginHorizontal: Spacing.xl, marginBottom: Spacing.lg },
+  retryBtn: { backgroundColor: Colors.primary, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderRadius: 12 },
+  retryText: { color: Colors.white, fontWeight: '700', fontSize: 15 },
+});

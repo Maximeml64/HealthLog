@@ -6,6 +6,7 @@ import { Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../utils/theme';
 
+import { useAppStore } from '../stores/useAppStore';
 import HomeScreen from '../screens/HomeScreen';
 import ProfilesScreen from '../screens/ProfilesScreen';
 import HistoryScreen from '../screens/HistoryScreen';
@@ -13,6 +14,7 @@ import RemindersScreen from '../screens/RemindersScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import EventDetailScreen from '../screens/EventDetailScreen';
 import ProfileDetailScreen from '../screens/ProfileDetailScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
 
 export type RootStackParamList = {
   Tabs: undefined;
@@ -78,6 +80,12 @@ function TabNavigator() {
 }
 
 export default function RootNavigator() {
+  const legalAccepted = useAppStore((s) => s.settings.legal_accepted);
+
+  if (!legalAccepted) {
+    return <OnboardingScreen />;
+  }
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Tabs" component={TabNavigator} />
