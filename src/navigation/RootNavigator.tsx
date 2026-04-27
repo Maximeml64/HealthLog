@@ -1,0 +1,96 @@
+// src/navigation/RootNavigator.tsx
+import React from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors } from '../utils/theme';
+
+import HomeScreen from '../screens/HomeScreen';
+import ProfilesScreen from '../screens/ProfilesScreen';
+import HistoryScreen from '../screens/HistoryScreen';
+import RemindersScreen from '../screens/RemindersScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import EventDetailScreen from '../screens/EventDetailScreen';
+import ProfileDetailScreen from '../screens/ProfileDetailScreen';
+
+export type RootStackParamList = {
+  Tabs: undefined;
+  EventDetail: { eventId: string };
+  ProfileDetail: { profileId: string };
+};
+
+export type TabParamList = {
+  Home: undefined;
+  Profiles: undefined;
+  History: undefined;
+  Reminders: undefined;
+  Settings: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<TabParamList>();
+
+function TabNavigator() {
+  const { bottom } = useSafeAreaInsets();
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: Colors.surface,
+          borderTopColor: Colors.border,
+          paddingBottom: bottom,
+          height: 60 + bottom,
+        },
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textMuted,
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ tabBarLabel: 'Accueil', tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>🏠</Text> }}
+      />
+      <Tab.Screen
+        name="Profiles"
+        component={ProfilesScreen}
+        options={{ tabBarLabel: 'Profils', tabBarIcon: () => <Text style={{ fontSize: 20 }}>👨‍👩‍👧</Text> }}
+      />
+      <Tab.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{ tabBarLabel: 'Historique', tabBarIcon: () => <Text style={{ fontSize: 20 }}>📋</Text> }}
+      />
+      <Tab.Screen
+        name="Reminders"
+        component={RemindersScreen}
+        options={{ tabBarLabel: 'Rappels', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🔔</Text> }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ tabBarLabel: 'Réglages', tabBarIcon: () => <Text style={{ fontSize: 20 }}>⚙️</Text> }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+export default function RootNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Tabs" component={TabNavigator} />
+      <Stack.Screen
+        name="EventDetail"
+        component={EventDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="ProfileDetail"
+        component={ProfileDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+    </Stack.Navigator>
+  );
+}

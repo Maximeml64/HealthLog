@@ -1,0 +1,227 @@
+// src/components/AddEventModal.tsx
+
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  Modal,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  EventType,
+  Profile,
+  HealthEvent,
+  EVENT_TYPE_ICONS,
+  EVENT_TYPE_LABELS,
+} from '../types';
+import { Colors, Typography, Spacing, Radius } from '../utils/theme';
+import { Avatar } from './UI';
+import { EventForm } from './EventForm';
+
+interface AddEventModalProps {
+  visible: boolean;
+  profiles: Profile[];
+  onClose: () => void;
+  onSave: (event: HealthEvent) => Promise<void>;
+  defaultProfileId?: string | null;
+}
+
+const EVENT_TYPES: EventType[] = [
+  'symptom', 'temperature', 'medication', 'appointment',
+  'vaccine', 'weight', 'height', 'sleep', 'digestion',
+  'appetite', 'mood', 'note',
+];
+
+const STEPS = ['profile', 'type', 'form'] as const;
+type Step = typeof STEPS[number];
+
+export const AddEventModal: React.FC<AddEventModalProps> = ({
+  visible,
+  profiles,
+  onClose,
+  onSave,
+  defaultProfileId,
+}) => {
+  const activeProfiles = profiles.filter((p) => !p.archived);
+
+  const [step, setStep] = useState<Step>(defaultProfileId ? 'type' : 'profile');
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(defaultProfileId ?? null);
+  const [selectedType, setSelectedType] = useState<EventType | null>(null);
+
+  const reset = useCallback(() => {
+    setStep(defaultProfileId ? 'type' : 'profile');
+    setSelectedProfileId(defaultProfileId ?? null);
+    setSelectedType(null);
+  }, [defaultProfileId]);
+
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
+
+  const handleFormSave = async (event: HealthEvent) => {
+    await onSave(event);
+    reset();
+    onClose();
+  };
+
+  const selectedProfile = activeProfiles.find((p) => p.id === selectedProfileId);
+
+  const renderProfileStep = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Pour qui ?</Text>
+      {activeProfiles.length === 0 ? (
+        <Text style={styles.emptyHint}>Aucun profil créé. Allez dans l'onglet Profils.</Text>
+      ) : (
+        <View style={styles.profileGrid}>
+          {activeProfiles.map((p) => (
+            <TouchableOpacity
+              key={p.id}
+              onPress={() => {
+                setSelectedProfileId(p.id);
+                setStep('type');
+              }}
+              style={[styles.profileChip, { borderColor: p.color }]}
+            >
+              <Avatar name={p.display_name} color={p.color} size={36} />
+              <Text style={[styles.profileChipLabel, { color: p.color }]}>{p.display_name}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+
+  const renderTypeStep = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Quel type ?</Text>
+      <View style={styles.typeGrid}>
+        {EVENT_TYPES.map((type) => (
+          <TouchableOpacity
+            key={type}
+            onPress={() => {
+              setSelectedType(type);
+              setStep('form');
+            }}
+            style={styles.typeChip}
+          >
+            <Text style={styles.typeIcon}>{EVENT_TYPE_ICONS[type]}</Text>
+            <Text style={styles.typeLabel}>{EVENT_TYPE_LABELS[type]}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={step === 'profile' ? handleClose : () => setStep(step === 'form' ? 'type' : 'profile')}
+            >
+              <Text style={styles.backBtn}>{step === 'profile' ? '✕' : '←'}</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Ajouter un événement</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {/* Progress */}
+          <View style={styles.progress}>
+            {STEPS.map((s, i) => (
+              <View
+                key={s}
+                style={[
+                  styles.progressDot,
+                  STEPS.indexOf(step) >= i && { backgroundColor: Colors.primary },
+                ]}
+              />
+            ))}
+          </View>
+
+          {/* Step content */}
+          <View style={{ flex: 1 }}>
+            {step === 'profile' && renderProfileStep()}
+            {step === 'type' && renderTypeStep()}
+            {step === 'form' && selectedProfile && selectedType && (
+              <EventForm
+                key={selectedType}
+                profile={selectedProfile}
+                eventType={selectedType}
+                initialValues={null}
+                onSave={handleFormSave}
+                onCancel={() => setStep('type')}
+              />
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: Colors.background },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  backBtn: { fontSize: 20, color: Colors.textSecondary, width: 40 },
+  headerTitle: { ...Typography.h3 },
+  progress: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    justifyContent: 'center',
+  },
+  progressDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.border,
+  },
+  stepContent: { flex: 1, padding: Spacing.lg },
+  stepTitle: { ...Typography.h2, marginBottom: Spacing.xl },
+  profileGrid: { gap: Spacing.sm },
+  profileChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: Radius.lg,
+    borderWidth: 1.5,
+    backgroundColor: Colors.surface,
+  },
+  profileChipLabel: { fontSize: 16, fontWeight: '600' },
+  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  typeChip: {
+    width: '31%',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 4,
+  },
+  typeIcon: { fontSize: 24 },
+  typeLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  emptyHint: { ...Typography.bodySmall, textAlign: 'center', marginTop: Spacing.xl },
+});

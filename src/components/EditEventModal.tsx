@@ -1,0 +1,75 @@
+// src/components/EditEventModal.tsx
+
+import React from 'react';
+import {
+  View,
+  Text,
+  Modal,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { HealthEvent, Profile } from '../types';
+import { Colors, Typography, Spacing } from '../utils/theme';
+import { EventForm } from './EventForm';
+
+interface EditEventModalProps {
+  visible: boolean;
+  event: HealthEvent;
+  profile: Profile;
+  onClose: () => void;
+  onSave: (event: HealthEvent) => Promise<void>;
+}
+
+export const EditEventModal: React.FC<EditEventModalProps> = ({
+  visible,
+  event,
+  profile,
+  onClose,
+  onSave,
+}) => {
+  const handleSave = async (updated: HealthEvent) => {
+    await onSave(updated);
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={styles.closeBtn}>✕</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Modifier l'événement</Text>
+            <View style={{ width: 40 }} />
+          </View>
+          <EventForm
+            profile={profile}
+            eventType={event.event_type}
+            initialValues={event}
+            onSave={handleSave}
+            onCancel={onClose}
+          />
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: Colors.background },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  closeBtn: { fontSize: 20, color: Colors.textSecondary, width: 40 },
+  headerTitle: { ...Typography.h3 },
+});
