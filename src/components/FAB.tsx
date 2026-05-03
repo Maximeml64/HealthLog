@@ -10,7 +10,14 @@ interface FABProps {
 
 export const FAB: React.FC<FABProps> = ({ onPress }) => {
   return (
-    <TouchableOpacity style={styles.fab} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity
+      style={styles.fab}
+      onPress={onPress}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel="Ajouter un événement de santé"
+      accessibilityHint="Ouvre le formulaire de création d'un nouvel événement"
+    >
       <Text style={styles.plus}>＋</Text>
     </TouchableOpacity>
   );

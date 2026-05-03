@@ -55,12 +55,18 @@ export default function OnboardingScreen() {
           <TouchableOpacity
             style={styles.linkRow}
             onPress={() => Linking.openURL('https://momentous-locket-2af.notion.site/Politique-de-Confidentialit-Healthlog-34f84071bf3e80af8320fb83f0d6ee11')}
+            accessibilityRole="link"
+            accessibilityLabel="Lire la Politique de Confidentialité"
+            accessibilityHint="Ouvre dans le navigateur"
           >
             <Text style={styles.linkText}>📄 Lire la Politique de Confidentialité</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.linkRow}
             onPress={() => Linking.openURL('https://momentous-locket-2af.notion.site/Conditions-G-n-rales-d-Utilisation-Healthlog-34f84071bf3e80b7811cf3a8f7ca5254')}
+            accessibilityRole="link"
+            accessibilityLabel="Lire les Conditions Générales d'Utilisation"
+            accessibilityHint="Ouvre dans le navigateur"
           >
             <Text style={styles.linkText}>📋 Lire les Conditions Générales d'Utilisation</Text>
           </TouchableOpacity>
@@ -71,6 +77,9 @@ export default function OnboardingScreen() {
           style={styles.checkboxRow}
           onPress={() => setAccepted((v) => !v)}
           activeOpacity={0.7}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: accepted }}
+          accessibilityLabel="J'accepte les CGU et la Politique de Confidentialité"
         >
           <View style={[styles.checkbox, accepted && styles.checkboxChecked]}>
             {accepted && <Text style={styles.checkmark}>✓</Text>}
@@ -86,6 +95,9 @@ export default function OnboardingScreen() {
           onPress={handleStart}
           disabled={!accepted}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Commencer"
+          accessibilityState={{ disabled: !accepted }}
         >
           <Text style={styles.startBtnText}>Commencer</Text>
         </TouchableOpacity>

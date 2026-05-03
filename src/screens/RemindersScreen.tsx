@@ -195,9 +195,12 @@ export default function RemindersScreen() {
                 onValueChange={() => toggleActive(r)}
                 trackColor={{ false: Colors.border, true: Colors.primary + '80' }}
                 thumbColor={r.active ? Colors.primary : Colors.textMuted}
+                accessibilityRole="switch"
+                accessibilityLabel={`Rappel : ${r.title}`}
+                accessibilityState={{ checked: r.active }}
               />
             )}
-            <TouchableOpacity onPress={() => handleDelete(r)} style={styles.deleteBtn}>
+            <TouchableOpacity onPress={() => handleDelete(r)} style={styles.deleteBtn} accessibilityRole="button" accessibilityLabel={`Supprimer le rappel ${r.title}`}>
               <Text style={styles.deleteBtnText}>🗑️</Text>
             </TouchableOpacity>
           </View>
@@ -244,11 +247,11 @@ export default function RemindersScreen() {
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setModalVisible(false)}>
         <SafeAreaView style={styles.safe}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
+            <TouchableOpacity onPress={() => setModalVisible(false)} accessibilityRole="button" accessibilityLabel="Annuler">
               <Text style={styles.modalCancel}>Annuler</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Nouveau rappel</Text>
-            <TouchableOpacity onPress={handleSave}>
+            <TouchableOpacity onPress={handleSave} accessibilityRole="button" accessibilityLabel="Enregistrer le rappel">
               <Text style={styles.modalSave}>Enregistrer</Text>
             </TouchableOpacity>
           </View>

@@ -83,11 +83,11 @@ export default function EventDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Retour">
             <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
           {profile && (
-            <TouchableOpacity onPress={() => setEditModalVisible(true)} style={styles.editBtn}>
+            <TouchableOpacity onPress={() => setEditModalVisible(true)} style={styles.editBtn} accessibilityRole="button" accessibilityLabel="Modifier l'événement">
               <Text style={styles.editBtnText}>✏️</Text>
             </TouchableOpacity>
           )}

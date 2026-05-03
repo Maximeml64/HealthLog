@@ -21,11 +21,11 @@ import { formatAge } from '../utils/helpers';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type PeriodKey = '7d' | '30d' | '3m' | 'all';
 
-const PERIODS: { key: PeriodKey; label: string }[] = [
-  { key: '7d', label: '7 j' },
-  { key: '30d', label: '30 j' },
-  { key: '3m', label: '3 mois' },
-  { key: 'all', label: 'Tout' },
+const PERIODS: { key: PeriodKey; label: string; a11yLabel: string }[] = [
+  { key: '7d', label: '7 j', a11yLabel: 'Filtrer sur 7 jours' },
+  { key: '30d', label: '30 j', a11yLabel: 'Filtrer sur 30 jours' },
+  { key: '3m', label: '3 mois', a11yLabel: 'Filtrer sur 3 mois' },
+  { key: 'all', label: 'Tout', a11yLabel: 'Afficher tous les événements' },
 ];
 
 export default function ProfileDetailScreen() {
@@ -121,7 +121,7 @@ export default function ProfileDetailScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={[styles.profileHeader, { borderBottomColor: profile.color + '33' }]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Retour">
             <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
           <Avatar name={profile.display_name} color={profile.color} size={64} />
@@ -141,6 +141,9 @@ export default function ProfileDetailScreen() {
               <TouchableOpacity
                 key={p.key}
                 onPress={() => setSelectedPeriod(p.key)}
+                accessibilityRole="button"
+                accessibilityLabel={p.a11yLabel}
+                accessibilityState={{ selected: selectedPeriod === p.key }}
                 style={[styles.periodBtn, selectedPeriod === p.key && { borderColor: profile.color, backgroundColor: profile.color + '15' }]}
               >
                 <Text style={[styles.periodBtnText, selectedPeriod === p.key && { color: profile.color }]}>{p.label}</Text>

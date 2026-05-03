@@ -58,7 +58,7 @@ export default function HistoryScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Historique</Text>
-        <TouchableOpacity onPress={() => setShowFilters(!showFilters)} style={styles.filterBtn}>
+        <TouchableOpacity onPress={() => setShowFilters(!showFilters)} style={styles.filterBtn} accessibilityRole="button" accessibilityLabel={showFilters ? 'Fermer les filtres' : 'Ouvrir les filtres'}>
           <Text style={styles.filterBtnText}>{showFilters ? '✕ Filtres' : '⚙ Filtres'}</Text>
           {(selectedProfile || selectedType) && <View style={styles.filterDot} />}
         </TouchableOpacity>
@@ -72,6 +72,7 @@ export default function HistoryScreen() {
           placeholder="Rechercher…"
           placeholderTextColor={Colors.textMuted}
           clearButtonMode="while-editing"
+          accessibilityLabel="Rechercher dans les événements"
         />
       </View>
 
@@ -79,13 +80,16 @@ export default function HistoryScreen() {
         <View style={styles.filtersPanel}>
           <Text style={styles.filterLabel}>Membre</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 4 }}>
-            <TouchableOpacity onPress={() => setSelectedProfile(null)} style={[styles.filterChip, !selectedProfile && styles.filterChipActive]}>
+            <TouchableOpacity onPress={() => setSelectedProfile(null)} style={[styles.filterChip, !selectedProfile && styles.filterChipActive]} accessibilityRole="button" accessibilityLabel="Tous les membres" accessibilityState={{ selected: !selectedProfile }}>
               <Text style={[styles.filterChipText, !selectedProfile && styles.filterChipTextActive]}>Tous</Text>
             </TouchableOpacity>
             {activeProfiles.map((p) => (
               <TouchableOpacity
                 key={p.id}
                 onPress={() => setSelectedProfile(selectedProfile === p.id ? null : p.id)}
+                accessibilityRole="button"
+                accessibilityLabel={p.display_name}
+                accessibilityState={{ selected: selectedProfile === p.id }}
                 style={[styles.filterChip, selectedProfile === p.id && { borderColor: p.color, backgroundColor: p.color + '20' }]}
               >
                 <Text style={[styles.filterChipText, selectedProfile === p.id && { color: p.color }]}>{p.display_name}</Text>
@@ -94,13 +98,16 @@ export default function HistoryScreen() {
           </ScrollView>
           <Text style={[styles.filterLabel, { marginTop: 8 }]}>Type</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 4 }}>
-            <TouchableOpacity onPress={() => setSelectedType(null)} style={[styles.filterChip, !selectedType && styles.filterChipActive]}>
+            <TouchableOpacity onPress={() => setSelectedType(null)} style={[styles.filterChip, !selectedType && styles.filterChipActive]} accessibilityRole="button" accessibilityLabel="Tous les types" accessibilityState={{ selected: !selectedType }}>
               <Text style={[styles.filterChipText, !selectedType && styles.filterChipTextActive]}>Tous</Text>
             </TouchableOpacity>
             {EVENT_TYPES.map((t) => (
               <TouchableOpacity
                 key={t}
                 onPress={() => setSelectedType(selectedType === t ? null : t)}
+                accessibilityRole="button"
+                accessibilityLabel={EVENT_TYPE_LABELS[t]}
+                accessibilityState={{ selected: selectedType === t }}
                 style={[styles.filterChip, selectedType === t && styles.filterChipActive]}
               >
                 <Text style={styles.filterChipText}>{EVENT_TYPE_ICONS[t]} {EVENT_TYPE_LABELS[t]}</Text>

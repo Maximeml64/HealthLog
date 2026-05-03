@@ -53,27 +53,27 @@ function TabNavigator() {
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{ tabBarLabel: 'Accueil', tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>🏠</Text> }}
+        options={{ tabBarLabel: 'Accueil', tabBarAccessibilityLabel: 'Onglet Accueil', tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>🏠</Text> }}
       />
       <Tab.Screen
         name="Profiles"
         component={ProfilesScreen}
-        options={{ tabBarLabel: 'Profils', tabBarIcon: () => <Text style={{ fontSize: 20 }}>👨‍👩‍👧</Text> }}
+        options={{ tabBarLabel: 'Profils', tabBarAccessibilityLabel: 'Onglet Profils', tabBarIcon: () => <Text style={{ fontSize: 20 }}>👨‍👩‍👧</Text> }}
       />
       <Tab.Screen
         name="History"
         component={HistoryScreen}
-        options={{ tabBarLabel: 'Historique', tabBarIcon: () => <Text style={{ fontSize: 20 }}>📋</Text> }}
+        options={{ tabBarLabel: 'Historique', tabBarAccessibilityLabel: 'Onglet Historique', tabBarIcon: () => <Text style={{ fontSize: 20 }}>📋</Text> }}
       />
       <Tab.Screen
         name="Reminders"
         component={RemindersScreen}
-        options={{ tabBarLabel: 'Rappels', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🔔</Text> }}
+        options={{ tabBarLabel: 'Rappels', tabBarAccessibilityLabel: 'Onglet Rappels', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🔔</Text> }}
       />
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}
-        options={{ tabBarLabel: 'Réglages', tabBarIcon: () => <Text style={{ fontSize: 20 }}>⚙️</Text> }}
+        options={{ tabBarLabel: 'Réglages', tabBarAccessibilityLabel: 'Onglet Réglages', tabBarIcon: () => <Text style={{ fontSize: 20 }}>⚙️</Text> }}
       />
     </Tab.Navigator>
   );

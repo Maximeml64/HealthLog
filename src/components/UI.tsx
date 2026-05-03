@@ -49,6 +49,7 @@ interface ButtonProps {
   icon?: string;
   style?: ViewStyle;
   fullWidth?: boolean;
+  accessibilityHint?: string;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -61,6 +62,7 @@ export const Button: React.FC<ButtonProps> = ({
   icon,
   style,
   fullWidth,
+  accessibilityHint,
 }) => {
   const sizeStyle = buttonSizes[size];
   const variantStyle = buttonVariants[variant];
@@ -70,6 +72,10 @@ export const Button: React.FC<ButtonProps> = ({
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!(disabled || loading) }}
+      accessibilityHint={accessibilityHint}
       style={[
         styles.btn,
         sizeStyle.container,
@@ -125,6 +131,8 @@ export const Avatar: React.FC<AvatarProps> = ({ name, color, size = 44, emoji })
 
   return (
     <View
+      accessibilityRole="image"
+      accessibilityLabel={`Avatar de ${name}`}
       style={[
         styles.avatar,
         {

@@ -92,13 +92,13 @@ export default function ProfilesScreen() {
                   </View>
                 </View>
                 <View style={styles.profileActions}>
-                  <TouchableOpacity onPress={() => openEdit(p)} style={styles.actionBtn}>
+                  <TouchableOpacity onPress={() => openEdit(p)} style={styles.actionBtn} accessibilityRole="button" accessibilityLabel={`Modifier le profil de ${p.display_name}`}>
                     <Text style={styles.actionBtnText}>✏️ Modifier</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => archiveProfile(p.id)} style={styles.actionBtn}>
+                  <TouchableOpacity onPress={() => archiveProfile(p.id)} style={styles.actionBtn} accessibilityRole="button" accessibilityLabel={`Archiver le profil de ${p.display_name}`}>
                     <Text style={styles.actionBtnText}>📦 Archiver</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDelete(p)} style={[styles.actionBtn, styles.actionBtnDanger]}>
+                  <TouchableOpacity onPress={() => handleDelete(p)} style={[styles.actionBtn, styles.actionBtnDanger]} accessibilityRole="button" accessibilityLabel={`Supprimer le profil de ${p.display_name}`}>
                     <Text style={[styles.actionBtnText, { color: Colors.danger }]}>🗑️ Supprimer</Text>
                   </TouchableOpacity>
                 </View>
@@ -115,7 +115,7 @@ export default function ProfilesScreen() {
                 <View style={styles.profileCardInner}>
                   <Avatar name={p.display_name} color={Colors.textMuted} size={40} />
                   <Text style={[styles.profileName, { color: Colors.textMuted }]}>{p.display_name}</Text>
-                  <TouchableOpacity onPress={() => upsertProfile({ ...p, archived: false, updated_at: new Date().toISOString() })}>
+                  <TouchableOpacity onPress={() => upsertProfile({ ...p, archived: false, updated_at: new Date().toISOString() })} accessibilityRole="button" accessibilityLabel={`Restaurer le profil de ${p.display_name}`}>
                     <Text style={{ fontSize: 12, color: Colors.primary, fontWeight: '600' }}>Restaurer</Text>
                   </TouchableOpacity>
                 </View>
@@ -129,9 +129,9 @@ export default function ProfilesScreen() {
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setModalVisible(false)}>
         <SafeAreaView style={styles.safe}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setModalVisible(false)}><Text style={styles.modalCancel}>Annuler</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setModalVisible(false)} accessibilityRole="button" accessibilityLabel="Annuler"><Text style={styles.modalCancel}>Annuler</Text></TouchableOpacity>
             <Text style={styles.modalTitle}>{editProfile ? 'Modifier' : 'Nouveau profil'}</Text>
-            <TouchableOpacity onPress={handleSave}><Text style={styles.modalSave}>Enregistrer</Text></TouchableOpacity>
+            <TouchableOpacity onPress={handleSave} accessibilityRole="button" accessibilityLabel="Enregistrer le profil"><Text style={styles.modalSave}>Enregistrer</Text></TouchableOpacity>
           </View>
           <KeyboardAwareScrollView
             style={{ flex: 1 }}

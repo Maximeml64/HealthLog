@@ -65,11 +65,31 @@ export const EventCard: React.FC<EventCardProps> = ({
     try { return event.metadata_json ? JSON.parse(event.metadata_json) : null; } catch { return null; }
   })();
 
+  const buildA11yLabel = () => {
+    let typeInfo = label;
+    if (event.numeric_value !== null) {
+      const val = event.numeric_value.toFixed(1).replace('.', ',');
+      typeInfo += event.event_type === 'temperature'
+        ? ` ${val}°C`
+        : ` ${val}${event.unit ? ' ' + event.unit : ''}`;
+    }
+    if (event.intensity !== null) {
+      typeInfo += `, intensité ${event.intensity} sur 5`;
+    }
+    const parts = [typeInfo, event.title];
+    if (profile) parts.push(profile.display_name);
+    parts.push(formatDate(event.occurred_at));
+    return parts.join(', ');
+  };
+
   return (
     <TouchableOpacity
       onPress={onPress}
       onLongPress={onLongPress}
       activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={buildA11yLabel()}
+      accessibilityHint="Appuyez pour voir les détails"
       style={[styles.card, compact && styles.cardCompact]}
     >
       <View style={styles.iconWrap}>

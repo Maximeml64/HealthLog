@@ -141,6 +141,7 @@ export default function SettingsScreen() {
     onPress,
     danger,
     disabled,
+    accessibilityHint,
   }: {
     icon: string;
     label: string;
@@ -149,11 +150,16 @@ export default function SettingsScreen() {
     onPress?: () => void;
     danger?: boolean;
     disabled?: boolean;
+    accessibilityHint?: string;
   }) => (
     <TouchableOpacity
       onPress={onPress}
       disabled={!onPress || disabled}
       activeOpacity={onPress && !disabled ? 0.7 : 1}
+      accessibilityRole={onPress ? 'button' : 'none'}
+      accessibilityLabel={label}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={disabled ? { disabled: true } : undefined}
       style={[styles.settingRow, disabled && { opacity: 0.5 }]}
     >
       <Text style={styles.settingIcon}>{icon}</Text>
@@ -222,6 +228,7 @@ export default function SettingsScreen() {
               sublabel="Exporter un backup ZIP (photos incluses)"
               onPress={handleBackup}
               disabled={isBackingUp}
+              accessibilityHint="Crée un fichier ZIP avec toutes vos données"
             />
             <View style={styles.rowDivider} />
             <SettingRow
@@ -230,6 +237,7 @@ export default function SettingsScreen() {
               sublabel="Importer un fichier ZIP Healthlog"
               onPress={handleRestore}
               disabled={isRestoring}
+              accessibilityHint="Importe un fichier ZIP de sauvegarde"
             />
             <View style={styles.rowDivider} />
             <SettingRow
@@ -238,6 +246,7 @@ export default function SettingsScreen() {
               sublabel="Action irréversible"
               onPress={handleClearData}
               danger
+              accessibilityHint="Supprime définitivement toutes vos données"
             />
           </Card>
         </View>
@@ -267,14 +276,6 @@ export default function SettingsScreen() {
             Consultez un médecin en cas de doute.
           </Text>
         </View>
-
-        {/* DEBUG — à supprimer avant release */}
-        <TouchableOpacity
-          onPress={() => { throw new Error('Test Sentry crash from Healthlog'); }}
-          style={styles.debugBtn}
-        >
-          <Text style={styles.debugBtnText}>🐛 Tester Sentry (debug)</Text>
-        </TouchableOpacity>
 
         <View style={{ height: 80 }} />
       </ScrollView>
@@ -329,12 +330,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
   },
-  debugBtn: {
-    marginTop: Spacing.xl,
-    padding: Spacing.md,
-    backgroundColor: Colors.danger,
-    borderRadius: Radius.md,
-    alignItems: 'center',
-  },
-  debugBtnText: { color: Colors.white, fontWeight: '700', fontSize: 14 },
 });
