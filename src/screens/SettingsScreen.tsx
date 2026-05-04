@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Alert,
   Switch,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
@@ -18,6 +19,9 @@ import { Colors, Typography, Spacing, Radius } from '../utils/theme';
 import { Card, Button } from '../components/UI';
 import { clearAllData } from '../services/StorageService';
 import { exportBackup, importBackup } from '../services/BackupService';
+
+const PRIVACY_POLICY_URL = 'https://momentous-locket-2af.notion.site/Politique-de-Confidentialit-Healthlog-34f84071bf3e80af8320fb83f0d6ee11';
+const CGU_URL = 'https://momentous-locket-2af.notion.site/Conditions-G-n-rales-d-Utilisation-Healthlog-34f84071bf3e80b7811cf3a8f7ca5254';
 
 export default function SettingsScreen() {
   const { settings, updateSettings, loadAll } = useAppStore();
@@ -265,6 +269,26 @@ export default function SettingsScreen() {
               icon="ℹ️"
               label="Version 1.0.0"
               sublabel="Healthlog"
+            />
+          </Card>
+        </View>
+
+        {/* Legal links */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>LÉGAL</Text>
+          <Card padding={0}>
+            <SettingRow
+              icon="🔒"
+              label="Politique de confidentialité"
+              onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+              accessibilityHint="Ouvre la politique de confidentialité dans le navigateur"
+            />
+            <View style={styles.rowDivider} />
+            <SettingRow
+              icon="📜"
+              label="Conditions Générales d'Utilisation"
+              onPress={() => Linking.openURL(CGU_URL)}
+              accessibilityHint="Ouvre les conditions générales dans le navigateur"
             />
           </Card>
         </View>
