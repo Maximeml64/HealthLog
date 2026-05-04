@@ -6,12 +6,12 @@ import * as SecureStore from 'expo-secure-store';
 
 const MAX_CHARS = 600; // conservative: ~1800 bytes worst-case UTF-8, safe under 2048
 
-function noteKey(entityType: 'event' | 'profile', entityId: string): string {
+function noteKey(entityType: 'event' | 'profile' | 'prescription', entityId: string): string {
   return `note_${entityType}_${entityId}`;
 }
 
 export async function saveNote(
-  entityType: 'event' | 'profile',
+  entityType: 'event' | 'profile' | 'prescription',
   entityId: string,
   note: string
 ): Promise<void> {
@@ -29,7 +29,7 @@ export async function saveNote(
 }
 
 export async function getNote(
-  entityType: 'event' | 'profile',
+  entityType: 'event' | 'profile' | 'prescription',
   entityId: string
 ): Promise<string> {
   try {
@@ -40,7 +40,7 @@ export async function getNote(
 }
 
 export async function deleteNote(
-  entityType: 'event' | 'profile',
+  entityType: 'event' | 'profile' | 'prescription',
   entityId: string
 ): Promise<void> {
   try {

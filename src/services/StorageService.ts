@@ -1,7 +1,7 @@
 // src/services/StorageService.ts
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Profile, HealthEvent, Reminder, AppSettings } from '../types';
+import { Profile, HealthEvent, Reminder, AppSettings, Prescription, PrescribedMedication } from '../types';
 import * as SecureNotes from './SecureNotesService';
 
 const KEYS = {
@@ -9,6 +9,8 @@ const KEYS = {
   EVENTS: 'events',
   REMINDERS: 'reminders',
   SETTINGS: 'settings',
+  PRESCRIPTIONS: 'prescriptions',
+  PRESCRIBED_MEDICATIONS: 'prescribed_medications',
 } as const;
 
 // ─── Profiles ────────────────────────────────────────────────────────────────
@@ -167,16 +169,138 @@ export async function saveSettings(settings: AppSettings): Promise<void> {
   await AsyncStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
 }
 
+// ─── Prescriptions ────────────────────────────────────────────────────────────
+// notes → SecureStore (entityType 'prescription'), stripped in AsyncStorage payload
+
+export async function getPrescriptions(): Promise<Prescription[]> {
+  const raw = await AsyncStorage.getItem(KEYS.PRESCRIPTIONS);
+  if (!raw) return [];
+  let prescriptions: Prescription[];
+  try {
+    prescriptions = JSON.parse(raw) as Prescription[];
+  } catch {
+    console.warn('[StorageService] Failed to parse prescriptions from storage');
+    return [];
+  }
+  return Promise.all(
+    prescriptions.map(async (p) => ({
+      ...p,
+      notes: await SecureNotes.getNote('prescription', p.id),
+    }))
+  );
+}
+
+export async function savePrescriptions(prescriptions: Prescription[]): Promise<void> {
+  await Promise.all(
+    prescriptions.map((p) => SecureNotes.saveNote('prescription', p.id, p.notes))
+  );
+  const stripped = prescriptions.map((p) => ({ ...p, notes: '' }));
+  await AsyncStorage.setItem(KEYS.PRESCRIPTIONS, JSON.stringify(stripped));
+}
+
+export async function upsertPrescription(prescription: Prescription): Promise<void> {
+  const prescriptions = await getPrescriptions();
+  const idx = prescriptions.findIndex((p) => p.id === prescription.id);
+  if (idx >= 0) {
+    prescriptions[idx] = prescription;
+  } else {
+    prescriptions.push(prescription);
+  }
+  await savePrescriptions(prescriptions);
+}
+
+/**
+ * Cascade delete: SecureNotes + linked PrescribedMedications + their Reminders.
+ * Photo deletion is handled at the store/service layer (requires PhotoService).
+ */
+export async function deletePrescription(id: string): Promise<void> {
+  // 1. Delete prescription note from SecureStore
+  await SecureNotes.deleteNote('prescription', id);
+
+  // 2. Collect linked medications to get their reminder_ids before deletion
+  const allMeds = await getPrescribedMedications();
+  const linkedMeds = allMeds.filter((m) => m.prescription_id === id);
+  const reminderIdsToDelete = linkedMeds.flatMap((m) => m.reminder_ids);
+
+  // 3. Delete linked prescribed_medications
+  await savePrescribedMedications(allMeds.filter((m) => m.prescription_id !== id));
+
+  // 4. Delete reminders that belonged to these medications
+  if (reminderIdsToDelete.length > 0) {
+    const reminders = await getReminders();
+    const reminderIdSet = new Set(reminderIdsToDelete);
+    await saveReminders(reminders.filter((r) => !reminderIdSet.has(r.id)));
+  }
+
+  // 5. Delete the prescription itself
+  const prescriptions = await getPrescriptions();
+  await savePrescriptions(prescriptions.filter((p) => p.id !== id));
+}
+
+// ─── PrescribedMedications ───────────────────────────────────────────────────
+// Pure AsyncStorage — no sensitive fields to route via SecureStore
+
+export async function getPrescribedMedications(): Promise<PrescribedMedication[]> {
+  const raw = await AsyncStorage.getItem(KEYS.PRESCRIBED_MEDICATIONS);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as PrescribedMedication[];
+  } catch {
+    console.warn('[StorageService] Failed to parse prescribed_medications from storage');
+    return [];
+  }
+}
+
+export async function savePrescribedMedications(meds: PrescribedMedication[]): Promise<void> {
+  await AsyncStorage.setItem(KEYS.PRESCRIBED_MEDICATIONS, JSON.stringify(meds));
+}
+
+export async function upsertPrescribedMedication(med: PrescribedMedication): Promise<void> {
+  const meds = await getPrescribedMedications();
+  const idx = meds.findIndex((m) => m.id === med.id);
+  if (idx >= 0) {
+    meds[idx] = med;
+  } else {
+    meds.push(med);
+  }
+  await savePrescribedMedications(meds);
+}
+
+/**
+ * Cascade delete: removes the medication + all Reminders listed in its reminder_ids.
+ * Notification cancellation is handled at the store layer (requires NotificationService).
+ */
+export async function deletePrescribedMedication(id: string): Promise<void> {
+  const meds = await getPrescribedMedications();
+  const med = meds.find((m) => m.id === id);
+
+  // Remove reminders from AsyncStorage that belong to this medication
+  if (med && med.reminder_ids.length > 0) {
+    const reminders = await getReminders();
+    const idSet = new Set(med.reminder_ids);
+    await saveReminders(reminders.filter((r) => !idSet.has(r.id)));
+  }
+
+  await savePrescribedMedications(meds.filter((m) => m.id !== id));
+}
+
 // ─── Export (legacy) ─────────────────────────────────────────────────────────
 
 export async function exportAllData(): Promise<string> {
-  const [profiles, events, reminders, settings] = await Promise.all([
-    getProfiles(),
-    getEvents(),
-    getReminders(),
-    getSettings(),
-  ]);
-  return JSON.stringify({ profiles, events, reminders, settings, exported_at: new Date().toISOString() }, null, 2);
+  const [profiles, events, reminders, settings, prescriptions, prescribedMedications] =
+    await Promise.all([
+      getProfiles(),
+      getEvents(),
+      getReminders(),
+      getSettings(),
+      getPrescriptions(),
+      getPrescribedMedications(),
+    ]);
+  return JSON.stringify(
+    { profiles, events, reminders, settings, prescriptions, prescribedMedications, exported_at: new Date().toISOString() },
+    null,
+    2
+  );
 }
 
 export async function importAllData(jsonString: string): Promise<void> {
@@ -186,6 +310,8 @@ export async function importAllData(jsonString: string): Promise<void> {
     if (data.events) await saveEvents(data.events);
     if (data.reminders) await saveReminders(data.reminders);
     if (data.settings) await saveSettings(data.settings);
+    if (data.prescriptions) await savePrescriptions(data.prescriptions);
+    if (data.prescribedMedications) await savePrescribedMedications(data.prescribedMedications);
   } catch {
     console.warn('[StorageService] Failed to parse import data');
     throw new Error('Format de données invalide');
@@ -197,13 +323,25 @@ export async function importAllData(jsonString: string): Promise<void> {
 export async function clearAllData(): Promise<void> {
   // Clear SecureStore notes before wiping AsyncStorage
   try {
-    const [profiles, events] = await Promise.all([getProfiles(), getEvents()]);
+    const [profiles, events, prescriptions] = await Promise.all([
+      getProfiles(),
+      getEvents(),
+      getPrescriptions(),
+    ]);
     await Promise.all([
       ...profiles.map((p) => SecureNotes.deleteNote('profile', p.id)),
       ...events.map((e) => SecureNotes.deleteNote('event', e.id)),
+      ...prescriptions.map((p) => SecureNotes.deleteNote('prescription', p.id)),
     ]);
   } catch {
     console.warn('[StorageService] Could not clear all SecureStore notes');
   }
-  await AsyncStorage.multiRemove([KEYS.PROFILES, KEYS.EVENTS, KEYS.REMINDERS, KEYS.SETTINGS]);
+  await AsyncStorage.multiRemove([
+    KEYS.PROFILES,
+    KEYS.EVENTS,
+    KEYS.REMINDERS,
+    KEYS.SETTINGS,
+    KEYS.PRESCRIPTIONS,
+    KEYS.PRESCRIBED_MEDICATIONS,
+  ]);
 }

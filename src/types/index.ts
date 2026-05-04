@@ -181,3 +181,81 @@ export const INTENSITY_LABELS: Record<number, string> = {
   4: 'Fort',
   5: 'Très fort',
 };
+
+// ─── Prescriptions ────────────────────────────────────────────────────────────
+
+export type MedicationUnit =
+  | 'cp'
+  | 'ml'
+  | 'mg'
+  | 'mcg'
+  | 'gélule'
+  | 'sachet'
+  | 'goutte'
+  | 'application'
+  | 'autre';
+
+export const MEDICATION_UNIT_LABELS: Record<MedicationUnit, string> = {
+  cp: 'Comprimé(s)',
+  ml: 'mL',
+  mg: 'mg',
+  mcg: 'mcg',
+  gélule: 'Gélule(s)',
+  sachet: 'Sachet(s)',
+  goutte: 'Goutte(s)',
+  application: 'Application(s)',
+  autre: 'Autre',
+};
+
+export const MEDICATION_UNITS: MedicationUnit[] = [
+  'cp',
+  'gélule',
+  'sachet',
+  'ml',
+  'mg',
+  'mcg',
+  'goutte',
+  'application',
+  'autre',
+];
+
+/** Une ordonnance émise par un médecin pour un profil donné. */
+export interface Prescription {
+  id: string;
+  profile_id: string;
+  /** URI locale de la photo de l'ordonnance (sandbox expo-file-system), null si absente. */
+  image_uri: string | null;
+  /** Date de prescription au format ISO YYYY-MM-DD. */
+  prescribed_date: string;
+  doctor_name: string;
+  /** Notes sensibles — stockées dans SecureNotesService, jamais dans AsyncStorage. */
+  notes: string;
+  /** Date d'expiration optionnelle au format ISO YYYY-MM-DD. */
+  valid_until: string | null;
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Un médicament saisi depuis une ordonnance, avec son planning de prises. */
+export interface PrescribedMedication {
+  id: string;
+  /** ID de l'ordonnance parente, null si médicament libre (hors ordonnance). */
+  prescription_id: string | null;
+  profile_id: string;
+  name: string;
+  dose: number;
+  unit: MedicationUnit;
+  /** Heures de prise au format HH:mm (ex. ["08:00","12:00","20:00"]). */
+  intake_times: string[];
+  /** Date de début au format ISO YYYY-MM-DD. */
+  start_date: string;
+  /** Date de fin au format ISO YYYY-MM-DD, null si indéfinie. */
+  end_date: string | null;
+  /** IDs des Reminders générés (1 par intake_time). */
+  reminder_ids: string[];
+  /** false = rappels en pause, médicament non supprimé. */
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}

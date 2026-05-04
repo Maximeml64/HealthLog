@@ -14,12 +14,18 @@ import RemindersScreen from '../screens/RemindersScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import EventDetailScreen from '../screens/EventDetailScreen';
 import ProfileDetailScreen from '../screens/ProfileDetailScreen';
+import PrescriptionsListScreen from '../screens/PrescriptionsListScreen';
+import PrescriptionDetailScreen from '../screens/PrescriptionDetailScreen';
+import PrescriptionEditScreen from '../screens/PrescriptionEditScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 
 export type RootStackParamList = {
   Tabs: undefined;
   EventDetail: { eventId: string };
   ProfileDetail: { profileId: string };
+  PrescriptionsList: undefined;
+  PrescriptionDetail: { id: string };
+  PrescriptionEdit: { prescriptionId?: string };
 };
 
 export type TabParamList = {
@@ -27,6 +33,7 @@ export type TabParamList = {
   Profiles: undefined;
   History: undefined;
   Reminders: undefined;
+  Prescriptions: undefined;
   Settings: undefined;
 };
 
@@ -71,6 +78,11 @@ function TabNavigator() {
         options={{ tabBarLabel: 'Rappels', tabBarAccessibilityLabel: 'Onglet Rappels', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🔔</Text> }}
       />
       <Tab.Screen
+        name="Prescriptions"
+        component={PrescriptionsListScreen}
+        options={{ tabBarLabel: 'Ordonnances', tabBarAccessibilityLabel: 'Onglet Ordonnances', tabBarIcon: () => <Text style={{ fontSize: 20 }}>💊</Text> }}
+      />
+      <Tab.Screen
         name="Settings"
         component={SettingsScreen}
         options={{ tabBarLabel: 'Réglages', tabBarAccessibilityLabel: 'Onglet Réglages', tabBarIcon: () => <Text style={{ fontSize: 20 }}>⚙️</Text> }}
@@ -98,6 +110,16 @@ export default function RootNavigator() {
         name="ProfileDetail"
         component={ProfileDetailScreen}
         options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="PrescriptionDetail"
+        component={PrescriptionDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="PrescriptionEdit"
+        component={PrescriptionEditScreen}
+        options={{ animation: 'slide_from_bottom' }}
       />
     </Stack.Navigator>
   );

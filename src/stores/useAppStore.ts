@@ -1,16 +1,26 @@
 // src/stores/useAppStore.ts
 
 import { create } from 'zustand';
-import { Profile, HealthEvent, Reminder, AppSettings } from '../types';
+import {
+  Profile,
+  HealthEvent,
+  Reminder,
+  AppSettings,
+  Prescription,
+  PrescribedMedication,
+} from '../types';
 import * as Storage from '../services/StorageService';
 import * as NotificationService from '../services/NotificationService';
 import * as PhotoService from '../services/PhotoService';
+import * as PrescriptionService from '../services/PrescriptionService';
 
 interface AppState {
   profiles: Profile[];
   events: HealthEvent[];
   reminders: Reminder[];
   settings: AppSettings;
+  prescriptions: Prescription[];
+  prescribedMedications: PrescribedMedication[];
   loading: boolean;
 
   // Init
@@ -26,9 +36,15 @@ interface AppState {
   deleteEvent: (id: string) => Promise<void>;
   getEventsByProfile: (profileId: string) => HealthEvent[];
 
-  // Reminders
-  upsertReminder: (r: Reminder) => Promise<void>;
+  // Reminders — returns the persisted Reminder with notification_ids filled
+  upsertReminder: (r: Reminder) => Promise<Reminder>;
   deleteReminder: (id: string) => Promise<void>;
+
+  // Prescriptions
+  upsertPrescription: (p: Prescription) => Promise<void>;
+  deletePrescription: (id: string) => Promise<void>;
+  upsertPrescribedMedication: (med: PrescribedMedication) => Promise<void>;
+  deletePrescribedMedication: (id: string) => Promise<void>;
 
   // Settings
   updateSettings: (partial: Partial<AppSettings>) => Promise<void>;
@@ -47,18 +63,27 @@ export const useAppStore = create<AppState>((set, get) => ({
   events: [],
   reminders: [],
   settings: DEFAULT_SETTINGS,
+  prescriptions: [],
+  prescribedMedications: [],
   loading: true,
+
+  // ─── Init ──────────────────────────────────────────────────────────────────
 
   loadAll: async () => {
     set({ loading: true });
-    const [profiles, events, reminders, settings] = await Promise.all([
-      Storage.getProfiles(),
-      Storage.getEvents(),
-      Storage.getReminders(),
-      Storage.getSettings(),
-    ]);
-    set({ profiles, events, reminders, settings, loading: false });
+    const [profiles, events, reminders, settings, prescriptions, prescribedMedications] =
+      await Promise.all([
+        Storage.getProfiles(),
+        Storage.getEvents(),
+        Storage.getReminders(),
+        Storage.getSettings(),
+        Storage.getPrescriptions(),
+        Storage.getPrescribedMedications(),
+      ]);
+    set({ profiles, events, reminders, settings, prescriptions, prescribedMedications, loading: false });
   },
+
+  // ─── Profiles ──────────────────────────────────────────────────────────────
 
   upsertProfile: async (profile) => {
     await Storage.upsertProfile(profile);
@@ -85,6 +110,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ profiles: profiles.map((p) => (p.id === id ? updated : p)) });
   },
 
+  // ─── Events ────────────────────────────────────────────────────────────────
+
   upsertEvent: async (event) => {
     await Storage.upsertEvent(event);
     const events = await Storage.getEvents();
@@ -105,6 +132,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     return get().events.filter((e) => e.profile_id === profileId);
   },
 
+  // ─── Reminders ─────────────────────────────────────────────────────────────
+  // MODIFIED: now returns the persisted Reminder with notification_ids filled.
+  // Required by upsertPrescribedMedication to collect scheduling results.
+
   upsertReminder: async (reminder) => {
     // Cancel all existing notifications (supports both old string field and new array)
     const oldIds: string[] = Array.isArray(reminder.notification_ids)
@@ -117,10 +148,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (reminder.active) {
       notifIds = await NotificationService.scheduleRecurringNotification(reminder);
     }
-    const updated = { ...reminder, notification_ids: notifIds, notification_id: null };
+    const updated: Reminder = { ...reminder, notification_ids: notifIds, notification_id: null };
     await Storage.upsertReminder(updated);
     const reminders = await Storage.getReminders();
     set({ reminders });
+    return updated;
   },
 
   deleteReminder: async (id) => {
@@ -135,6 +167,122 @@ export const useAppStore = create<AppState>((set, get) => ({
     await Storage.deleteReminder(id);
     set({ reminders: reminders.filter((r) => r.id !== id) });
   },
+
+  // ─── Prescriptions ─────────────────────────────────────────────────────────
+
+  upsertPrescription: async (prescription) => {
+    await Storage.upsertPrescription(prescription);
+    const prescriptions = await Storage.getPrescriptions();
+    set({ prescriptions });
+  },
+
+  deletePrescription: async (id) => {
+    const { prescribedMedications, reminders } = get();
+
+    // 1. Cancel OS notifications for every reminder linked to this prescription
+    const linkedMeds = prescribedMedications.filter((m) => m.prescription_id === id);
+    const linkedReminderIdSet = new Set(linkedMeds.flatMap((m) => m.reminder_ids));
+    const linkedReminders = reminders.filter((r) => linkedReminderIdSet.has(r.id));
+    await Promise.all(
+      linkedReminders.flatMap((r) =>
+        r.notification_ids.map(NotificationService.cancelNotification)
+      )
+    );
+
+    // 2. Delete prescription photo from the local filesystem
+    const prescription = get().prescriptions.find((p) => p.id === id);
+    if (prescription?.image_uri) {
+      await PhotoService.deletePhoto(prescription.image_uri);
+    }
+
+    // 3. Cascade Storage delete: SecureNotes + meds + reminders rows in AsyncStorage
+    await Storage.deletePrescription(id);
+
+    // 4. Reload the three affected slices
+    const [prescriptions, updatedMeds, updatedReminders] = await Promise.all([
+      Storage.getPrescriptions(),
+      Storage.getPrescribedMedications(),
+      Storage.getReminders(),
+    ]);
+    set({ prescriptions, prescribedMedications: updatedMeds, reminders: updatedReminders });
+  },
+
+  upsertPrescribedMedication: async (med) => {
+    const { prescribedMedications, reminders } = get();
+
+    // 1. If this is an update, cancel and remove all old reminders first
+    const existing = prescribedMedications.find((m) => m.id === med.id);
+    if (existing && existing.reminder_ids.length > 0) {
+      const oldIdSet = new Set(existing.reminder_ids);
+      const oldReminders = reminders.filter((r) => oldIdSet.has(r.id));
+
+      // Cancel OS notifications
+      await Promise.all(
+        oldReminders.flatMap((r) =>
+          r.notification_ids.map(NotificationService.cancelNotification)
+        )
+      );
+      // Remove reminder rows from Storage
+      await Promise.all(existing.reminder_ids.map(Storage.deleteReminder));
+    }
+
+    // 2. Generate fresh Reminder objects (pure, no side effects)
+    const newReminders = PrescriptionService.generateRemindersForMedication(med, med.profile_id);
+
+    // 3. Persist and schedule each reminder via the existing upsertReminder action.
+    //    upsertReminder returns the Reminder with notification_ids filled.
+    //    Reminders are processed sequentially to avoid AsyncStorage write races.
+    const persistedReminders: Reminder[] = [];
+    for (const r of newReminders) {
+      const persisted = await get().upsertReminder(r);
+      persistedReminders.push(persisted);
+    }
+
+    // 4. Update the medication with the confirmed reminder IDs and persist
+    const updatedMed: PrescribedMedication = {
+      ...med,
+      reminder_ids: persistedReminders.map((r) => r.id),
+    };
+    await Storage.upsertPrescribedMedication(updatedMed);
+
+    // 5. Reload both slices (reminders already reloaded by upsertReminder above,
+    //    but we reload again to guarantee consistency)
+    const [updatedMeds, updatedReminders] = await Promise.all([
+      Storage.getPrescribedMedications(),
+      Storage.getReminders(),
+    ]);
+    set({ prescribedMedications: updatedMeds, reminders: updatedReminders });
+  },
+
+  deletePrescribedMedication: async (id) => {
+    const { prescribedMedications, reminders } = get();
+    const med = prescribedMedications.find((m) => m.id === id);
+
+    if (med && med.reminder_ids.length > 0) {
+      const idSet = new Set(med.reminder_ids);
+      const linkedReminders = reminders.filter((r) => idSet.has(r.id));
+
+      // Cancel OS notifications
+      await Promise.all(
+        linkedReminders.flatMap((r) =>
+          r.notification_ids.map(NotificationService.cancelNotification)
+        )
+      );
+      // Remove reminder rows from Storage
+      await Promise.all(med.reminder_ids.map(Storage.deleteReminder));
+    }
+
+    // Storage cascade also cleans reminder rows, but we already removed them above
+    await Storage.deletePrescribedMedication(id);
+
+    const [updatedMeds, updatedReminders] = await Promise.all([
+      Storage.getPrescribedMedications(),
+      Storage.getReminders(),
+    ]);
+    set({ prescribedMedications: updatedMeds, reminders: updatedReminders });
+  },
+
+  // ─── Settings ──────────────────────────────────────────────────────────────
 
   updateSettings: async (partial) => {
     const current = get().settings;
