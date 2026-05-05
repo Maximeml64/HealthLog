@@ -14,6 +14,7 @@ import { View, ActivityIndicator, Text, TouchableOpacity, StyleSheet } from 'rea
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { useAppStore } from './src/stores/useAppStore';
+import { usePremiumStore } from './src/stores/usePremiumStore';
 import RootNavigator from './src/navigation/RootNavigator';
 import { ensurePhotoDir } from './src/services/PhotoService';
 import { Colors, Spacing } from './src/utils/theme';
@@ -28,6 +29,10 @@ function App() {
     try {
       await ensurePhotoDir();
       await loadAll();
+      // RC init after app data is loaded so settings.premium is populated
+      // before syncWithAppStore reads it. Fire-and-forget — errors are
+      // handled internally in the store.
+      void usePremiumStore.getState().init();
     } catch (e) {
       Sentry.captureException(e, {
         tags: { context: 'app_initialization' },

@@ -17,6 +17,7 @@ import ProfileDetailScreen from '../screens/ProfileDetailScreen';
 import PrescriptionsListScreen from '../screens/PrescriptionsListScreen';
 import PrescriptionDetailScreen from '../screens/PrescriptionDetailScreen';
 import PrescriptionEditScreen from '../screens/PrescriptionEditScreen';
+import PaywallScreen from '../screens/PaywallScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 
 export type RootStackParamList = {
@@ -26,6 +27,7 @@ export type RootStackParamList = {
   PrescriptionsList: undefined;
   PrescriptionDetail: { id: string };
   PrescriptionEdit: { prescriptionId?: string };
+  Paywall: undefined;
 };
 
 export type TabParamList = {
@@ -119,6 +121,11 @@ export default function RootNavigator() {
       <Stack.Screen
         name="PrescriptionEdit"
         component={PrescriptionEditScreen}
+        options={{ animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+        name="Paywall"
+        component={PaywallScreen}
         options={{ animation: 'slide_from_bottom' }}
       />
     </Stack.Navigator>

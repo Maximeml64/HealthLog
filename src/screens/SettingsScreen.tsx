@@ -12,9 +12,13 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import { useAppStore } from '../stores/useAppStore';
+import { usePremiumStore } from '../stores/usePremiumStore';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 import { Colors, Typography, Spacing, Radius } from '../utils/theme';
 import { Card, Button } from '../components/UI';
 import { clearAllData } from '../services/StorageService';
@@ -24,7 +28,9 @@ const PRIVACY_POLICY_URL = 'https://momentous-locket-2af.notion.site/Politique-d
 const CGU_URL = 'https://momentous-locket-2af.notion.site/Conditions-G-n-rales-d-Utilisation-Healthlog-34f84071bf3e80b7811cf3a8f7ca5254';
 
 export default function SettingsScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { settings, updateSettings, loadAll } = useAppStore();
+  const isPremium = usePremiumStore((s) => s.isPremium);
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
@@ -182,7 +188,33 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Premium card */}
+
+        {/* ── Premium RC banner (source of truth: usePremiumStore) ── */}
+        {isPremium ? (
+          <View style={styles.premiumActiveBadge}>
+            <Text style={styles.premiumActiveBadgeText}>✨ Premium actif</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.premiumBanner}
+            onPress={() => navigation.navigate('Paywall')}
+            activeOpacity={0.82}
+            accessibilityRole="button"
+            accessibilityLabel="Devenir Premium"
+            accessibilityHint="Ouvre les offres d'abonnement"
+          >
+            <Text style={styles.premiumBannerIcon}>⭐</Text>
+            <View style={styles.premiumBannerBody}>
+              <Text style={styles.premiumBannerTitle}>Devenir Premium</Text>
+              <Text style={styles.premiumBannerSub}>
+                Profils illimités · Export PDF · Sauvegardes chiffrées
+              </Text>
+            </View>
+            <Text style={styles.premiumBannerChevron}>›</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Premium card (existing — settings.premium from AsyncStorage) */}
         <Card style={styles.premiumCard}>
           <View style={styles.premiumRow}>
             <Text style={styles.premiumIcon}>⭐</Text>
@@ -315,6 +347,52 @@ const styles = StyleSheet.create({
   },
   title: { ...Typography.h1 },
   content: { padding: Spacing.lg },
+
+  // ── Premium RC banner ─────────────────────────────────────────────────────
+  premiumBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    gap: Spacing.md,
+  },
+  premiumBannerIcon: { fontSize: 24 },
+  premiumBannerBody: { flex: 1 },
+  premiumBannerTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  premiumBannerSub: {
+    fontSize: 12,
+    color: Colors.white + 'CC',
+    marginTop: 2,
+  },
+  premiumBannerChevron: {
+    fontSize: 22,
+    color: Colors.white + 'CC',
+    fontWeight: '600',
+  },
+
+  premiumActiveBadge: {
+    backgroundColor: Colors.successLight,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.success + '40',
+    alignSelf: 'flex-start',
+  },
+  premiumActiveBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.success,
+  },
+
+  // ── Existing premium card (unchanged) ─────────────────────────────────────
   premiumCard: {
     marginBottom: Spacing.xl,
     padding: Spacing.lg,
@@ -325,6 +403,8 @@ const styles = StyleSheet.create({
   premiumIcon: { fontSize: 28 },
   premiumTitle: { fontSize: 15, fontWeight: '700', color: Colors.text },
   premiumSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+
+  // ── Sections ──────────────────────────────────────────────────────────────
   section: { marginBottom: Spacing.lg },
   sectionTitle: {
     fontSize: 11, fontWeight: '700', color: Colors.textMuted,
