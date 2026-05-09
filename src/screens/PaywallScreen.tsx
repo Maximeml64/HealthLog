@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
   },
   tierCardSelected: {
     borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.primaryMuted,
   },
 
   radio: {
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   tierTitleSelected: { color: Colors.text },
 
   tierBadge: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.primaryMuted,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,

@@ -11,6 +11,7 @@ import { Card, Avatar, SectionHeader, EmptyState } from '../components/UI';
 import { EventCard } from '../components/EventCard';
 import { FAB } from '../components/FAB';
 import { AddEventModal } from '../components/AddEventModal';
+import { MenstrualCard } from '../components/MenstrualCard';
 import { formatRelativeTime } from '../utils/helpers';
 import { parseISO } from 'date-fns';
 
@@ -23,6 +24,13 @@ export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
 
   const activeProfiles = profiles.filter((p) => !p.archived);
+
+  // Profile à afficher dans la MenstrualCard : default_profile si tracking activé, sinon premier avec tracking
+  const menstrualProfileId = useMemo(() => {
+    const def = profiles.find((p) => p.id === settings.default_profile_id && !p.archived);
+    if (def?.menstrualTrackingEnabled) return def.id;
+    return activeProfiles.find((p) => p.menstrualTrackingEnabled)?.id ?? null;
+  }, [profiles, settings.default_profile_id, activeProfiles]);
 
   const recentEvents = useMemo(() =>
     [...events]
@@ -62,7 +70,7 @@ export default function HomeScreen() {
 
         <View style={styles.legalBanner}>
           <Text style={styles.legalText}>
-            📋 Outil d'organisation personnelle — Ne remplace pas un professionnel de santé
+            {"📋 Outil d'organisation personnelle — Ne remplace pas un professionnel de santé"}
           </Text>
         </View>
 
@@ -86,6 +94,13 @@ export default function HomeScreen() {
               })}
             </ScrollView>
           </View>
+        )}
+
+        {menstrualProfileId && (
+          <MenstrualCard
+            profileId={menstrualProfileId}
+            onPress={() => navigation.navigate('CycleScreen', { profileId: menstrualProfileId })}
+          />
         )}
 
         <View style={styles.section}>
@@ -158,9 +173,8 @@ const styles = StyleSheet.create({
   legalBanner: {
     backgroundColor: Colors.accentLight, borderRadius: Radius.md,
     padding: Spacing.md, marginBottom: Spacing.lg,
-    borderWidth: 1, borderColor: Colors.accent + '44',
   },
-  legalText: { fontSize: 11, color: Colors.accent, fontWeight: '500', lineHeight: 16 },
+  legalText: { fontSize: 11, color: '#FFFFFF', fontWeight: '500', lineHeight: 16 },
   section: { marginBottom: Spacing.xl },
   profilesRow: { gap: Spacing.sm, paddingRight: Spacing.lg },
   profileCard: {

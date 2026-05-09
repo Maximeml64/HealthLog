@@ -12,6 +12,7 @@ import {
   TextStyle,
 } from 'react-native';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../utils/theme';
+import { INTENSITY_COLORS } from '../constants/healthColors';
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
@@ -101,9 +102,9 @@ export const Button: React.FC<ButtonProps> = ({
 
 const buttonVariants: Record<ButtonVariant, { container: ViewStyle; textColor: string }> = {
   primary: { container: { backgroundColor: Colors.primary }, textColor: Colors.white },
-  secondary: { container: { backgroundColor: Colors.primaryLight, borderWidth: 0 }, textColor: Colors.primary },
+  secondary: { container: { backgroundColor: Colors.primaryMuted, borderWidth: 0 }, textColor: Colors.primary },
   ghost: { container: { backgroundColor: 'transparent' }, textColor: Colors.textSecondary },
-  danger: { container: { backgroundColor: '#FFE5E5' }, textColor: Colors.danger },
+  danger: { container: { backgroundColor: Colors.danger }, textColor: Colors.white },
 };
 
 const buttonSizes: Record<ButtonSize, { container: ViewStyle; text: TextStyle; icon: TextStyle }> = {
@@ -222,7 +223,6 @@ interface IntensityPickerProps {
   onChange: (v: number) => void;
 }
 
-const INTENSITY_COLORS = ['#1DD1A1', '#FECA57', '#FF9F43', '#FF6B6B', '#CC2222'];
 
 export const IntensityPicker: React.FC<IntensityPickerProps> = ({ value, onChange }) => (
   <View style={styles.intensityRow}>
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   countBadge: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.primaryMuted,
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: Radius.full,

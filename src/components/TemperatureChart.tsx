@@ -50,7 +50,7 @@ export const TemperatureChart: React.FC<TemperatureChartProps> = ({ events, colo
       stroke: profileColor,
     },
     propsForBackgroundLines: {
-      stroke: '#F0E6D8',
+      stroke: Colors.border,
       strokeDasharray: '',
     },
   };

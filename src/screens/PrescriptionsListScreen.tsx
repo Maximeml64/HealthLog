@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
     ...Shadow.lg,

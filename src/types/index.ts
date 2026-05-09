@@ -1,5 +1,82 @@
 // src/types/index.ts
 
+// ─── Menstrual tracking ───────────────────────────────────────────────────────
+
+export type Sex = 'female' | 'male' | 'non_binary' | 'unspecified';
+
+export type MenstrualMode = 'tracking' | 'ttc' | 'pregnancy';
+
+export type FlowIntensity = 'light' | 'medium' | 'heavy';
+
+export type MenstrualSymptom =
+  | 'cramps'
+  | 'headache'
+  | 'fatigue'
+  | 'mood_swings'
+  | 'bloating'
+  | 'acne'
+  | 'breast_tenderness'
+  | 'back_pain'
+  | 'nausea'
+  | 'food_cravings'
+  | 'insomnia';
+
+export type BloodColor =
+  | 'pink'        // Rose clair — début/fin, faible flux
+  | 'bright_red'  // Rouge vif — sang frais, normal
+  | 'dark_red'    // Rouge foncé — flux abondant
+  | 'brown'       // Marron — sang oxydé, début/fin
+  | 'black'       // Noir/brun très foncé — sang ancien
+  | 'orange'      // Orange — signe potentiel d'infection
+  | 'gray';       // Gris — signe potentiel d'infection sérieuse
+
+export type BloodTexture =
+  | 'fluid'        // Fluide
+  | 'small_clots'  // Petits caillots (normal en flux abondant)
+  | 'large_clots'  // Gros caillots (à surveiller si fréquent)
+  | 'watery'       // Aqueux/dilué (peut indiquer une carence)
+  | 'mucousy';     // Muqueux
+
+export interface DayLog {
+  date: string;            // ISO YYYY-MM-DD
+  flow?: FlowIntensity;
+  symptoms?: MenstrualSymptom[];
+  notes?: string;
+  basalTemperature?: number; // °C, ex. 36.7
+  color?: BloodColor;
+  texture?: BloodTexture;
+}
+
+export interface MenstrualCycle {
+  id: string;
+  profileId: string;
+  startDate: string;       // ISO YYYY-MM-DD
+  endDate?: string;        // undefined si cycle en cours
+  dayLogs: DayLog[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PregnancyData {
+  id: string;
+  profileId: string;
+  startDate: string;       // LMP — dernières règles avant grossesse
+  dueDate: string;         // LMP + 280 jours (éditable)
+  endDate?: string;        // accouchement / fausse couche / IVG
+  notes?: string;
+  appointments: Array<{
+    id: string;
+    date: string;          // ISO datetime
+    type: 'echo_1' | 'echo_2' | 'echo_3' | 'consultation' | 'analysis' | 'other';
+    label?: string;
+    notes?: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export type RelationType =
   | 'self'
   | 'child'
@@ -24,6 +101,12 @@ export interface Profile {
   archived: boolean;
   created_at: string;
   updated_at: string;
+  // ── Menstrual tracking (optional — default via ?? at read site) ────────────
+  sex?: Sex;
+  menstrualTrackingEnabled?: boolean;
+  menstrualMode?: MenstrualMode;
+  averageCycleLength?: number;
+  averagePeriodLength?: number;
 }
 
 export type EventType =

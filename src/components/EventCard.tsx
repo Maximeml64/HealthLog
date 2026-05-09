@@ -4,6 +4,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { HealthEvent, Profile, EVENT_TYPE_ICONS, EVENT_TYPE_LABELS, INTENSITY_LABELS } from '../types';
 import { Colors, Typography, Spacing, Radius } from '../utils/theme';
+import { INTENSITY_COLORS } from '../constants/healthColors';
 import { formatDate } from '../utils/helpers';
 import { Avatar } from './UI';
 
@@ -50,8 +51,7 @@ export const EventCard: React.FC<EventCardProps> = ({
       );
     }
     if (event.intensity !== null) {
-      const colors = ['#1DD1A1', '#FECA57', '#FF9F43', '#FF6B6B', '#CC2222'];
-      const c = colors[(event.intensity ?? 1) - 1];
+      const c = INTENSITY_COLORS[(event.intensity ?? 1) - 1];
       return (
         <View style={[styles.valueBadge, { backgroundColor: c + '20' }]}>
           <Text style={[styles.valueText, { color: c }]}>{INTENSITY_LABELS[event.intensity ?? 1]}</Text>

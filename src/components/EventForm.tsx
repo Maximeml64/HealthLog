@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     backgroundColor: Colors.surface,
   },
-  chipSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
+  chipSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryMuted },
   chipText: { fontSize: 13, color: Colors.textSecondary },
   chipTextSelected: { color: Colors.primary, fontWeight: '600' },
 });

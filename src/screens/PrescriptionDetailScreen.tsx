@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   photoHintText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 12,
     fontWeight: '500',
   },
@@ -731,15 +731,13 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Spacing.md,
     borderRadius: Radius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.danger + '60',
     alignItems: 'center',
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.danger,
   },
   deleteBtnText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.danger,
+    color: '#FFFFFF',
   },
 
   // Disclaimer
@@ -759,7 +757,7 @@ const styles = StyleSheet.create({
   // Fullscreen photo modal
   fullscreenModal: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: Colors.black,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -776,7 +774,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   fullscreenCloseText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 18,
     fontWeight: '600',
   },

@@ -19,6 +19,10 @@ import PrescriptionDetailScreen from '../screens/PrescriptionDetailScreen';
 import PrescriptionEditScreen from '../screens/PrescriptionEditScreen';
 import PaywallScreen from '../screens/PaywallScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
+import CycleScreen from '../screens/CycleScreen';
+import PeriodEditScreen from '../screens/PeriodEditScreen';
+import PregnancyStartScreen from '../screens/PregnancyStartScreen';
+import AppointmentEditScreen from '../screens/AppointmentEditScreen';
 
 export type RootStackParamList = {
   Tabs: undefined;
@@ -28,6 +32,15 @@ export type RootStackParamList = {
   PrescriptionDetail: { id: string };
   PrescriptionEdit: { prescriptionId?: string };
   Paywall: undefined;
+  CycleScreen: { profileId: string };
+  PeriodEditScreen: {
+    profileId: string;
+    mode: 'createCycle' | 'editCycle' | 'editDay';
+    cycleId?: string;
+    date?: string;
+  };
+  PregnancyStartScreen: { profileId: string; prefillLmpDate?: string };
+  AppointmentEditScreen: { profileId: string; pregnancyId: string; appointmentId?: string; prefillType?: string };
 };
 
 export type TabParamList = {
@@ -126,6 +139,26 @@ export default function RootNavigator() {
       <Stack.Screen
         name="Paywall"
         component={PaywallScreen}
+        options={{ animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+        name="CycleScreen"
+        component={CycleScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="PeriodEditScreen"
+        component={PeriodEditScreen}
+        options={{ animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+        name="PregnancyStartScreen"
+        component={PregnancyStartScreen}
+        options={{ animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+        name="AppointmentEditScreen"
+        component={AppointmentEditScreen}
         options={{ animation: 'slide_from_bottom' }}
       />
     </Stack.Navigator>

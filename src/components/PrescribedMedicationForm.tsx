@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   },
 
   errorBanner: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.danger + '10',
     borderRadius: Radius.md,
     padding: Spacing.md,
     marginBottom: Spacing.lg,
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   },
   chipSelected: {
     borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.primaryMuted,
   },
   chipText: {
     fontSize: 12,

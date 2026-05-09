@@ -1,35 +1,53 @@
 // src/utils/theme.ts
 
 export const Colors = {
-  background: '#FFF8F0',
+  // ── Backgrounds ──────────────────────────────────────────────────────────
+  background: '#FFFFFF',
+  backgroundSecondary: '#F8FAFC',
   surface: '#FFFFFF',
-  surfaceAlt: '#FFF0E6',
-  border: '#F0E6D8',
-  borderStrong: '#DDD0C0',
-  text: '#2D2016',
-  textSecondary: '#8C7B6B',
-  textMuted: '#B8A898',
-  primary: '#FF6B6B',
-  primaryLight: '#FFE5E5',
-  primaryDark: '#E05555',
-  accent: '#FF9F43',
-  accentLight: '#FFF3E0',
-  success: '#1DD1A1',
-  successLight: '#E8FFF7',
-  warning: '#FECA57',
-  warningLight: '#FFFDE7',
-  info: '#54A0FF',
-  infoLight: '#EBF5FF',
-  danger: '#FF6B6B',
+  surfaceAlt: '#F0F9FF',
+
+  // ── Borders ───────────────────────────────────────────────────────────────
+  border: '#E2E8F0',
+  borderStrong: '#CBD5E1',
+
+  // ── Text ──────────────────────────────────────────────────────────────────
+  text: '#0F172A',
+  textSecondary: '#64748B',
+  textMuted: '#94A3B8',
+
+  // ── Primary — bleu marine (blue-900) ─────────────────────────────────────
+  primary: '#1E3A8A',
+  primaryLight: '#1E3A8A',
+  primaryDark: '#172554',
+  primaryMuted: '#1E3A8A14',
+
+  // ── Accent — alias primary (bleu marine, clés conservées pour compatibilité)
+  accent: '#1E3A8A',
+  accentLight: '#1E3A8A',
+  accentDark: '#172554',
+  accentMuted: '#1E3A8A14',
+
+  // ── Status ────────────────────────────────────────────────────────────────
+  success: '#10B981',
+  successLight: '#D1FAE5',
+  warning: '#F59E0B',
+  warningLight: '#FEF3C7',
+  error: '#EF4444',
+  danger: '#EF4444',
+  info: '#0EA5E9',
+  infoLight: '#F0F9FF',
+
+  // ── Utilities ─────────────────────────────────────────────────────────────
   white: '#FFFFFF',
   black: '#000000',
   overlay: 'rgba(0,0,0,0.5)',
-  cardShadow: 'rgba(45, 32, 22, 0.08)',
+  cardShadow: 'rgba(15, 23, 42, 0.08)',
 } as const;
 
 export const Typography = {
   display: {
-    fontFamily: undefined, // uses system
+    fontFamily: undefined,
     fontSize: 28,
     fontWeight: '700' as const,
     lineHeight: 34,
@@ -102,24 +120,31 @@ export const Radius = {
 
 export const Shadow = {
   sm: {
-    shadowColor: Colors.cardShadow,
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 1,
+    shadowOpacity: 0.06,
     shadowRadius: 3,
     elevation: 2,
   },
   md: {
-    shadowColor: Colors.cardShadow,
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 1,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
   },
   lg: {
-    shadowColor: Colors.cardShadow,
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 1,
+    shadowOpacity: 0.10,
     shadowRadius: 16,
     elevation: 8,
+  },
+  primary: {
+    shadowColor: '#1E3A8A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
   },
 };

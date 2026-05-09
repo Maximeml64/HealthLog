@@ -1,13 +1,13 @@
 // src/screens/ProfilesScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Modal, Alert, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Modal, Alert, Platform, Switch } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useAppStore } from '../stores/useAppStore';
-import { Profile, RelationType, BloodType, PROFILE_COLORS, BLOOD_TYPES, RELATION_TYPE_LABELS } from '../types';
+import { Profile, RelationType, BloodType, Sex, MenstrualMode, PROFILE_COLORS, BLOOD_TYPES, RELATION_TYPE_LABELS } from '../types';
 import { Colors, Typography, Spacing, Radius } from '../utils/theme';
 import { Card, Avatar, Button, EmptyState, Badge } from '../components/UI';
 import { generateId, formatAge } from '../utils/helpers';
@@ -17,25 +17,32 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const BLOOD_TYPE_COLOR = '#C0392B';
 
+const SEX_LABELS: Record<Sex, string> = {
+  female: 'Femme',
+  male: 'Homme',
+  non_binary: 'Non binaire',
+  unspecified: 'Non spécifié',
+};
+
 export default function ProfilesScreen() {
   const { profiles, events, upsertProfile, archiveProfile, deleteProfile } = useAppStore();
   const navigation = useNavigation<Nav>();
   const [modalVisible, setModalVisible] = useState(false);
   const [editProfile, setEditProfile] = useState<Profile | null>(null);
-  const [form, setForm] = useState({ display_name: '', color: PROFILE_COLORS[0], birth_date: '', relation_type: 'child' as RelationType, blood_type: '' as BloodType | '', notes: '' });
+  const [form, setForm] = useState({ display_name: '', color: PROFILE_COLORS[0], birth_date: '', relation_type: 'child' as RelationType, blood_type: '' as BloodType | '', notes: '', sex: 'unspecified' as Sex, menstrualTrackingEnabled: false, menstrualMode: 'tracking' as MenstrualMode });
 
   const activeProfiles = profiles.filter((p) => !p.archived);
   const archivedProfiles = profiles.filter((p) => p.archived);
 
   const openCreate = () => {
     setEditProfile(null);
-    setForm({ display_name: '', color: PROFILE_COLORS[0], birth_date: '', relation_type: 'child', blood_type: '', notes: '' });
+    setForm({ display_name: '', color: PROFILE_COLORS[0], birth_date: '', relation_type: 'child', blood_type: '', notes: '', sex: 'unspecified', menstrualTrackingEnabled: false, menstrualMode: 'tracking' });
     setModalVisible(true);
   };
 
   const openEdit = (p: Profile) => {
     setEditProfile(p);
-    setForm({ display_name: p.display_name, color: p.color, birth_date: p.birth_date ?? '', relation_type: p.relation_type, blood_type: p.blood_type ?? '', notes: p.notes });
+    setForm({ display_name: p.display_name, color: p.color, birth_date: p.birth_date ?? '', relation_type: p.relation_type, blood_type: p.blood_type ?? '', notes: p.notes, sex: p.sex ?? 'unspecified', menstrualTrackingEnabled: p.menstrualTrackingEnabled ?? false, menstrualMode: p.menstrualMode ?? 'tracking' });
     setModalVisible(true);
   };
 
@@ -99,7 +106,7 @@ export default function ProfilesScreen() {
                     <Text style={styles.actionBtnText}>📦 Archiver</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => handleDelete(p)} style={[styles.actionBtn, styles.actionBtnDanger]} accessibilityRole="button" accessibilityLabel={`Supprimer le profil de ${p.display_name}`}>
-                    <Text style={[styles.actionBtnText, { color: Colors.danger }]}>🗑️ Supprimer</Text>
+                    <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>🗑️ Supprimer</Text>
                   </TouchableOpacity>
                 </View>
               </Card>
@@ -189,6 +196,54 @@ export default function ProfilesScreen() {
               <Text style={styles.fieldLabel}>NOTES</Text>
               <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} value={form.notes} onChangeText={(v) => setForm({ ...form, notes: v })} placeholder="Informations utiles…" placeholderTextColor={Colors.textMuted} multiline returnKeyType="done" scrollEnabled={false} textAlignVertical="top" />
             </View>
+
+            <View style={styles.sectionDivider} />
+
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>SUIVI DE SANTÉ</Text>
+              <Text style={styles.fieldSubLabel}>Sexe (optionnel)</Text>
+              <Text style={styles.fieldHelper}>{"Permet d'activer des fonctionnalités spécifiques"}</Text>
+              <View style={styles.chipRow}>
+                {(Object.keys(SEX_LABELS) as Sex[]).map((s) => (
+                  <TouchableOpacity
+                    key={s}
+                    onPress={() => setForm({
+                      ...form,
+                      sex: s,
+                      ...(s !== 'female' && s !== 'non_binary' ? { menstrualTrackingEnabled: false } : {}),
+                    })}
+                    style={[styles.chip, form.sex === s && styles.chipSelected]}
+                  >
+                    <Text style={[styles.chipText, form.sex === s && styles.chipTextSelected]}>{SEX_LABELS[s]}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {(form.sex === 'female' || form.sex === 'non_binary') && (
+              <View style={styles.field}>
+                <View style={styles.switchRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.switchLabel}>Activer le suivi menstruel</Text>
+                    <Text style={styles.switchSub}>Cycles, prédictions, fertilité et grossesse</Text>
+                  </View>
+                  <Switch
+                    value={form.menstrualTrackingEnabled}
+                    onValueChange={(v) => setForm({ ...form, menstrualTrackingEnabled: v, ...(v ? { menstrualMode: 'tracking' } : {}) })}
+                    trackColor={{ false: Colors.border, true: Colors.primary }}
+                    thumbColor="#FFFFFF"
+                  />
+                </View>
+                <Text style={styles.privacyHint}>
+                  🔒 Les données sont stockées uniquement sur ton appareil.
+                </Text>
+                {form.menstrualTrackingEnabled && (
+                  <Text style={styles.switchHint}>
+                    {"Tu pourras ajuster le mode (suivi standard / fertilité / grossesse) directement dans la section Cycle."}
+                  </Text>
+                )}
+              </View>
+            )}
           </KeyboardAwareScrollView>
         </SafeAreaView>
       </Modal>
@@ -211,7 +266,7 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 10, color: Colors.textMuted },
   profileActions: { flexDirection: 'row', marginTop: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.border, paddingTop: Spacing.sm, gap: Spacing.sm },
   actionBtn: { flex: 1, paddingVertical: 6, alignItems: 'center', borderRadius: Radius.sm, backgroundColor: Colors.surfaceAlt },
-  actionBtnDanger: { backgroundColor: Colors.primaryLight },
+  actionBtnDanger: { backgroundColor: Colors.danger },
   actionBtnText: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary },
   archivedTitle: { fontSize: 11, fontWeight: '700', color: Colors.textMuted, letterSpacing: 0.5, marginBottom: Spacing.sm, textTransform: 'uppercase' },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.border },
@@ -223,9 +278,17 @@ const styles = StyleSheet.create({
   input: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, fontSize: 15, color: Colors.text },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface },
-  chipSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
+  chipSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryMuted },
   chipText: { fontSize: 13, color: Colors.textSecondary },
   chipTextSelected: { color: Colors.primary, fontWeight: '600' },
   colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   colorDot: { width: 32, height: 32, borderRadius: 16 },
+  sectionDivider: { height: 1, backgroundColor: Colors.border, marginBottom: Spacing.lg },
+  fieldSubLabel: { fontSize: 14, fontWeight: '600', color: Colors.text, marginBottom: 4 },
+  fieldHelper: { fontSize: 12, color: Colors.textMuted, marginBottom: Spacing.sm },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  switchLabel: { fontSize: 15, fontWeight: '600', color: Colors.text },
+  switchSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  switchHint: { fontSize: 11, color: Colors.textMuted, fontStyle: 'italic', marginTop: Spacing.sm, lineHeight: 16 },
+  privacyHint: { fontSize: 11, color: Colors.textMuted, marginTop: Spacing.sm },
 });

@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
   premiumCard: {
     marginBottom: Spacing.xl,
     padding: Spacing.lg,
-    backgroundColor: '#FFF3E0',
+    backgroundColor: Colors.accentMuted,
     borderColor: Colors.accent + '44',
   },
   premiumRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },

@@ -1,13 +1,18 @@
 // src/screens/ProfileDetailScreen.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, TextInput } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
-import { subDays, subMonths, parseISO } from 'date-fns';
+import { subDays, subMonths, parseISO, format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { useAppStore } from '../stores/useAppStore';
+import { useMenstrualStore } from '../stores/useMenstrualStore';
+import {
+  getCycleStats, getCurrentPhase, getPregnancyWeek, getPregnancyTrimester, type CyclePhase,
+} from '../utils/menstrualCalc';
 import { Colors, Typography, Spacing, Radius } from '../utils/theme';
 import { Card, Avatar, Button, EmptyState, Badge } from '../components/UI';
 import { EventCard } from '../components/EventCard';
@@ -15,8 +20,29 @@ import { AddEventModal } from '../components/AddEventModal';
 import { generateEpisodeSummary } from '../services/SummaryService';
 import { generateMedicalPdf } from '../services/PdfExportService';
 import { TemperatureChart } from '../components/TemperatureChart';
-import { RELATION_TYPE_LABELS, EVENT_TYPE_ICONS, EventType } from '../types';
+import { RELATION_TYPE_LABELS, EVENT_TYPE_ICONS, EventType, Sex } from '../types';
 import { formatAge } from '../utils/helpers';
+
+const SEX_LABELS: Record<Sex, string> = {
+  female: 'Femme',
+  male: 'Homme',
+  non_binary: 'Non binaire',
+  unspecified: 'Non spécifié',
+};
+
+const PHASE_COLORS: Record<CyclePhase, string> = {
+  menstruation: Colors.danger,
+  follicular:   Colors.warning,
+  ovulation:    Colors.success,
+  luteal:       Colors.primary,
+};
+
+const PHASE_LABELS_SHORT: Record<CyclePhase, string> = {
+  menstruation: 'Règles',
+  follicular:   'Folliculaire',
+  ovulation:    'Ovulation',
+  luteal:       'Lutéale',
+};
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type PeriodKey = '7d' | '30d' | '3m' | 'all';
@@ -40,6 +66,11 @@ export default function ProfileDetailScreen() {
   const [showSummary, setShowSummary] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const { cycles, pregnancies, loadMenstrualData, getCyclesByProfile, getActivePregnancy } = useMenstrualStore();
+  useEffect(() => { loadMenstrualData(); }, []);
+  const profileCycles = useMemo(() => getCyclesByProfile(profileId), [cycles, profileId]);
+  const today = useMemo(() => new Date(), []);
 
   if (!profile) {
     return (
@@ -132,8 +163,90 @@ export default function ProfileDetailScreen() {
             {profile.blood_type && <Badge label={profile.blood_type} color="#C0392B" />}
           </View>
           {profile.notes ? <Text style={styles.profileNotes}>{profile.notes}</Text> : null}
+          {((profile.sex && profile.sex !== 'unspecified') || profile.menstrualTrackingEnabled) && (
+            <Text style={styles.profileTrackingInfo}>
+              {profile.sex && profile.sex !== 'unspecified' ? SEX_LABELS[profile.sex] : ''}
+              {profile.sex && profile.sex !== 'unspecified' && profile.menstrualTrackingEnabled ? ' · ' : ''}
+              {profile.menstrualTrackingEnabled ? 'Suivi menstruel activé' : ''}
+            </Text>
+          )}
           <Button label="+ Ajouter un événement" onPress={() => setAddModalVisible(true)} size="sm" style={{ marginTop: Spacing.md }} />
         </View>
+
+        {(profile.menstrualTrackingEnabled ?? false) && (() => {
+          const mode = profile.menstrualMode ?? 'tracking';
+          const menstrualStats = getCycleStats(profileCycles);
+          const phase = getCurrentPhase(profileCycles, today);
+          const activePregnancy = getActivePregnancy(profileId);
+          const lastCycle = [...profileCycles].sort((a, b) => b.startDate.localeCompare(a.startDate))[0];
+          const pregnancyWeek = activePregnancy ? getPregnancyWeek(activePregnancy, today) : null;
+          const pregnancyTrimester = activePregnancy ? getPregnancyTrimester(activePregnancy, today) : null;
+          return (
+            <View style={styles.menstrualSection}>
+              <View style={styles.menstrualHeader}>
+                <Text style={styles.menstrualTitle}>Suivi menstruel</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('CycleScreen', { profileId: profile.id })}
+                  accessibilityRole="button"
+                  accessibilityLabel="Voir tout le suivi menstruel"
+                >
+                  <Text style={styles.menstrualViewAll}>Voir tout ›</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.menstrualStats}>
+                {mode === 'pregnancy' ? (
+                  <>
+                    <View style={styles.menstrualStat}>
+                      <Text style={styles.menstrualStatValue}>{pregnancyWeek != null ? `S${pregnancyWeek}` : '–'}</Text>
+                      <Text style={styles.menstrualStatLabel}>Semaine</Text>
+                    </View>
+                    <View style={styles.menstrualStat}>
+                      <Text style={styles.menstrualStatValue}>{pregnancyTrimester ?? '–'}</Text>
+                      <Text style={styles.menstrualStatLabel}>Trimestre</Text>
+                    </View>
+                    <View style={styles.menstrualStat}>
+                      <Text style={styles.menstrualStatValue} numberOfLines={1}>
+                        {activePregnancy ? format(parseISO(activePregnancy.dueDate), 'd MMM', { locale: fr }) : '–'}
+                      </Text>
+                      <Text style={styles.menstrualStatLabel}>DPA</Text>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.menstrualStat}>
+                      <View style={styles.phaseLabelRow}>
+                        <View style={[styles.phaseDot, { backgroundColor: phase ? PHASE_COLORS[phase] : Colors.border }]} />
+                        <Text style={styles.menstrualStatValue} numberOfLines={1}>
+                          {phase ? PHASE_LABELS_SHORT[phase] : '–'}
+                        </Text>
+                      </View>
+                      <Text style={styles.menstrualStatLabel}>Phase</Text>
+                    </View>
+                    <View style={styles.menstrualStat}>
+                      <Text style={styles.menstrualStatValue}>{menstrualStats.avgCycleLength}j</Text>
+                      <Text style={styles.menstrualStatLabel}>Cycle moyen</Text>
+                    </View>
+                    <View style={styles.menstrualStat}>
+                      <Text style={styles.menstrualStatValue} numberOfLines={1}>
+                        {lastCycle ? format(parseISO(lastCycle.startDate), 'd MMM', { locale: fr }) : '–'}
+                      </Text>
+                      <Text style={styles.menstrualStatLabel}>Dernière période</Text>
+                    </View>
+                  </>
+                )}
+              </View>
+
+              <TouchableOpacity
+                style={styles.menstrualAddBtn}
+                onPress={() => navigation.navigate('PeriodEditScreen', { profileId: profile.id, mode: 'createCycle' })}
+                accessibilityRole="button"
+              >
+                <Text style={styles.menstrualAddBtnText}>+ Ajouter une période</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })()}
 
         <View style={styles.content}>
           <View style={styles.periodRow}>
@@ -231,6 +344,21 @@ const styles = StyleSheet.create({
   profileName: { ...Typography.h1, textAlign: 'center' },
   profileMeta: { flexDirection: 'row', gap: Spacing.sm },
   profileNotes: { ...Typography.bodySmall, textAlign: 'center', maxWidth: 300 },
+  profileTrackingInfo: { fontSize: 12, color: Colors.textMuted, textAlign: 'center', marginTop: 2 },
+
+  menstrualSection: { backgroundColor: Colors.surface, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  menstrualHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.md },
+  menstrualTitle: { ...Typography.h3 },
+  menstrualViewAll: { fontSize: 13, color: Colors.primary, fontWeight: '600' },
+  menstrualStats: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: Spacing.md },
+  menstrualStat: { alignItems: 'center', flex: 1, gap: 3 },
+  menstrualStatValue: { fontSize: 15, fontWeight: '700', color: Colors.text },
+  menstrualStatLabel: { fontSize: 10, color: Colors.textMuted },
+  phaseLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  phaseDot: { width: 8, height: 8, borderRadius: 4 },
+  menstrualAddBtn: { paddingVertical: Spacing.sm, alignItems: 'center', borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.primaryMuted, backgroundColor: Colors.primaryMuted },
+  menstrualAddBtnText: { fontSize: 13, color: Colors.primary, fontWeight: '600' },
+
   content: { padding: Spacing.lg },
   periodRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.lg },
   periodBtn: { flex: 1, paddingVertical: 7, alignItems: 'center', borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.border },

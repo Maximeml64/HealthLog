@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
 
   // Error
   errorBanner: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.danger + '10',
     borderRadius: Radius.md,
     padding: Spacing.md,
     marginBottom: Spacing.lg,
@@ -730,7 +730,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   photoOverlayText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 13,
     fontWeight: '600',
   },
