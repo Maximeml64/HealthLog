@@ -72,14 +72,6 @@ export default function ProfileDetailScreen() {
   const profileCycles = useMemo(() => getCyclesByProfile(profileId), [cycles, profileId]);
   const today = useMemo(() => new Date(), []);
 
-  if (!profile) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <EmptyState emoji="❓" title="Profil introuvable" />
-      </SafeAreaView>
-    );
-  }
-
   const getPeriodStart = (key: PeriodKey): Date => {
     const now = new Date();
     if (key === '7d') return subDays(now, 7);
@@ -119,9 +111,17 @@ export default function ProfileDetailScreen() {
   }, [filteredEvents, searchQuery]);
 
   const summary = useMemo(() => {
-    if (!showSummary) return null;
+    if (!showSummary || !profile) return null;
     return generateEpisodeSummary(profile, events, periodStart, new Date());
   }, [showSummary, profile, events, periodStart]);
+
+  if (!profile) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <EmptyState emoji="❓" title="Profil introuvable" />
+      </SafeAreaView>
+    );
+  }
 
   const handleExportPdf = async () => {
     setIsExporting(true);
