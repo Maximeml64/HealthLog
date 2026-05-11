@@ -44,6 +44,30 @@ function lmpToDueDate(lmp: string): string {
   return d.toISOString().slice(0, 10);
 }
 
+// ─── Backup helpers (exported for BackupService) ──────────────────────────────
+
+export async function getMenstrualBackupData(): Promise<{
+  cycles: MenstrualCycle[];
+  pregnancies: PregnancyData[];
+}> {
+  const [cycles, pregnancies] = await Promise.all([loadCycles(), loadPregnancies()]);
+  return { cycles, pregnancies };
+}
+
+export async function persistMenstrualBackupData(data: {
+  cycles: MenstrualCycle[];
+  pregnancies: PregnancyData[];
+}): Promise<void> {
+  await Promise.all([
+    persistCycles(data.cycles),
+    persistPregnancies(data.pregnancies),
+  ]);
+}
+
+export async function clearMenstrualData(): Promise<void> {
+  await AsyncStorage.multiRemove([KEYS.CYCLES, KEYS.PREGNANCIES]);
+}
+
 // ─── Public helper — exported for use in BLOC B (computations) ────────────────
 
 export function computeProfileAverages(

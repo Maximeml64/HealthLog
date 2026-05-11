@@ -19,6 +19,11 @@ import {
   upsertReminder as storageUpsertReminder,
   clearAllData,
 } from './StorageService';
+import {
+  getMenstrualBackupData,
+  persistMenstrualBackupData,
+  clearMenstrualData,
+} from '../stores/useMenstrualStore';
 import { ensurePhotoDir } from './PhotoService';
 import * as NotificationService from './NotificationService';
 import {
@@ -28,6 +33,8 @@ import {
   AppSettings,
   Prescription,
   PrescribedMedication,
+  MenstrualCycle,
+  PregnancyData,
 } from '../types';
 
 const PHOTO_DIR = (FileSystem.documentDirectory ?? '') + 'photos/';
@@ -35,7 +42,7 @@ const PHOTO_DIR = (FileSystem.documentDirectory ?? '') + 'photos/';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface BackupMetadata {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   exported_at: string;
   app_version: string;
 }
@@ -49,6 +56,9 @@ interface BackupData {
   // v2+ fields — absent in v1 backups, treated as empty arrays on restore
   prescriptions?: Prescription[];
   prescribedMedications?: PrescribedMedication[];
+  // v3+ fields — absent in v1/v2 backups, treated as empty arrays on restore
+  cycles?: MenstrualCycle[];
+  pregnancies?: PregnancyData[];
 }
 
 // ─── Photo helpers ────────────────────────────────────────────────────────────
@@ -123,7 +133,7 @@ async function rescheduleReminders(reminders: Reminder[]): Promise<void> {
 // ─── Export ───────────────────────────────────────────────────────────────────
 
 export async function exportBackup(): Promise<string> {
-  const [profiles, events, reminders, settings, prescriptions, prescribedMedications] =
+  const [profiles, events, reminders, settings, prescriptions, prescribedMedications, menstrualData] =
     await Promise.all([
       getProfiles(),
       getEvents(),
@@ -131,6 +141,7 @@ export async function exportBackup(): Promise<string> {
       getSettings(),
       getPrescriptions(),
       getPrescribedMedications(),
+      getMenstrualBackupData(),
     ]);
 
   const zip = new JSZip();
@@ -159,7 +170,7 @@ export async function exportBackup(): Promise<string> {
 
   const backupData: BackupData = {
     metadata: {
-      version: 2,
+      version: 3,
       exported_at: new Date().toISOString(),
       app_version: '1.0.0',
     },
@@ -169,6 +180,8 @@ export async function exportBackup(): Promise<string> {
     settings,
     prescriptions: prescriptionsForBackup,
     prescribedMedications,
+    cycles: menstrualData.cycles,
+    pregnancies: menstrualData.pregnancies,
   };
 
   zip.file('data.json', JSON.stringify(backupData, null, 2));
@@ -196,6 +209,8 @@ export async function importBackup(
   photos: number;
   prescriptions: number;
   prescribedMedications: number;
+  cycles: number;
+  pregnancies: number;
 }> {
   const base64 = await FileSystem.readAsStringAsync(zipUri, {
     encoding: FileSystem.EncodingType.Base64,
@@ -209,13 +224,14 @@ export async function importBackup(
   const dataJson = await dataFile.async('string');
   const data = JSON.parse(dataJson) as BackupData;
 
-  // Guard: accept v1 (legacy, no prescriptions) and v2
+  // Guard: accept v1 (legacy, no prescriptions/menstrual), v2 (no menstrual), v3
   const version = data.metadata?.version;
-  if (version !== 1 && version !== 2) {
+  if (version !== 1 && version !== 2 && version !== 3) {
     throw new Error('Format incompatible : version de backup non supportée.');
   }
 
-  const isV2 = version === 2;
+  const isV2 = version === 2 || version === 3;
+  const isV3 = version === 3;
 
   await ensurePhotoDir();
 
@@ -251,9 +267,13 @@ export async function importBackup(
     ? (data.prescribedMedications ?? [])
     : [];
 
+  const incomingCycles: MenstrualCycle[] = isV3 ? (data.cycles ?? []) : [];
+  const incomingPregnancies: PregnancyData[] = isV3 ? (data.pregnancies ?? []) : [];
+
   // ── Persist and re-schedule ──
   if (mode === 'replace') {
     await clearAllData();
+    await clearMenstrualData();
 
     await Promise.all([
       saveProfiles(data.profiles),
@@ -266,6 +286,7 @@ export async function importBackup(
             savePrescribedMedications(incomingMedications),
           ]
         : []),
+      persistMenstrualBackupData({ cycles: incomingCycles, pregnancies: incomingPregnancies }),
     ]);
 
     // Re-schedule all active reminders (all existing OS notifications are now cancelled
@@ -320,6 +341,23 @@ export async function importBackup(
         ]),
       ]);
     }
+
+    if (isV3) {
+      const existing = await getMenstrualBackupData();
+      const existingCycleIds = new Set(existing.cycles.map((c) => c.id));
+      const existingPregnancyIds = new Set(existing.pregnancies.map((p) => p.id));
+
+      await persistMenstrualBackupData({
+        cycles: [
+          ...existing.cycles,
+          ...incomingCycles.filter((c) => !existingCycleIds.has(c.id)),
+        ],
+        pregnancies: [
+          ...existing.pregnancies,
+          ...incomingPregnancies.filter((p) => !existingPregnancyIds.has(p.id)),
+        ],
+      });
+    }
   }
 
   return {
@@ -329,5 +367,7 @@ export async function importBackup(
     photos: photoCount,
     prescriptions: restoredPrescriptions.length,
     prescribedMedications: incomingMedications.length,
+    cycles: incomingCycles.length,
+    pregnancies: incomingPregnancies.length,
   };
 }

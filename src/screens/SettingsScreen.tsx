@@ -17,6 +17,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import { useAppStore } from '../stores/useAppStore';
+import { useMenstrualStore } from '../stores/useMenstrualStore';
 import { usePremiumStore } from '../stores/usePremiumStore';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { Colors, Typography, Spacing, Radius } from '../utils/theme';
@@ -59,10 +60,11 @@ export default function SettingsScreen() {
     try {
       const result = await importBackup(zipUri, mode);
       await loadAll();
+      await useMenstrualStore.getState().loadMenstrualData();
       const pl = (n: number, s: string) => `${n} ${s}${n > 1 ? 's' : ''}`;
       Alert.alert(
         'Restauration réussie',
-        `Importé : ${pl(result.profiles, 'profil')}, ${pl(result.events, 'événement')}, ${pl(result.reminders, 'rappel')}, ${pl(result.photos, 'photo')}.`
+        `Importé : ${pl(result.profiles, 'profil')}, ${pl(result.events, 'événement')}, ${pl(result.reminders, 'rappel')}, ${pl(result.photos, 'photo')}, ${pl(result.cycles, 'cycle')}, ${pl(result.pregnancies, 'grossesse')}.`
       );
     } catch (e) {
       Alert.alert('Erreur', e instanceof Error ? e.message : 'La restauration a échoué.');
