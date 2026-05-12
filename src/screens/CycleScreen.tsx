@@ -1,7 +1,7 @@
 // src/screens/CycleScreen.tsx
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,7 +18,7 @@ import {
   getCycleStats, getCurrentPhase, getDayOfCycle, getDaysUntilNextPeriod,
   getFertilityWindow, predictNextPeriod, type CyclePhase,
 } from '../utils/menstrualCalc';
-import { Colors, Radius, Shadow, Spacing, Typography } from '../utils/theme';
+import { Colors, Radius, Spacing, Typography } from '../utils/theme';
 import { Card, EmptyState, SectionHeader } from '../components/UI';
 import { FAB } from '../components/FAB';
 import { ModeSwitcher } from '../components/ModeSwitcher';
@@ -61,16 +61,16 @@ export default function CycleScreen() {
 
   const profiles = useAppStore((s) => s.profiles);
   const upsertProfile = useAppStore((s) => s.upsertProfile);
-  const { cycles, pregnancies, loadMenstrualData, getCyclesByProfile, getActivePregnancy } = useMenstrualStore();
+  const { cycles, loadMenstrualData, getActivePregnancy } = useMenstrualStore();
 
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [modeSwitcherVisible, setModeSwitcherVisible] = useState(false);
   const today = useMemo(() => new Date(), []);
 
-  useEffect(() => { loadMenstrualData(); }, []);
+  useEffect(() => { loadMenstrualData(); }, [loadMenstrualData]);
 
   const profile = profiles.find((p) => p.id === profileId);
-  const profileCycles = useMemo(() => getCyclesByProfile(profileId), [cycles, profileId]);
+  const profileCycles = useMemo(() => cycles.filter((c) => c.profileId === profileId), [cycles, profileId]);
   const stats = useMemo(() => getCycleStats(profileCycles), [profileCycles]);
 
   // All useMemo hooks must be declared before any early return
@@ -406,7 +406,15 @@ export default function CycleScreen() {
                   );
                 })}
                 {profileCycles.length > 5 && (
-                  <TouchableOpacity onPress={() => console.log('TODO — tous les cycles')} style={styles.viewAllBtn}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      Alert.alert(
+                        'Bientôt',
+                        'La liste complète des cycles arrivera dans une prochaine version.'
+                      )
+                    }
+                    style={styles.viewAllBtn}
+                  >
                     <Text style={styles.viewAllText}>Voir tous les cycles ({profileCycles.length})</Text>
                   </TouchableOpacity>
                 )}

@@ -1,7 +1,7 @@
 // src/components/FAB.tsx
 
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, Animated } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Colors, Shadow } from '../utils/theme';
 
 interface FABProps {

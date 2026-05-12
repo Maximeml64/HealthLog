@@ -67,9 +67,9 @@ export default function ProfileDetailScreen() {
   const [isExporting, setIsExporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { cycles, pregnancies, loadMenstrualData, getCyclesByProfile, getActivePregnancy } = useMenstrualStore();
-  useEffect(() => { loadMenstrualData(); }, []);
-  const profileCycles = useMemo(() => getCyclesByProfile(profileId), [cycles, profileId]);
+  const { cycles, loadMenstrualData, getActivePregnancy } = useMenstrualStore();
+  useEffect(() => { loadMenstrualData(); }, [loadMenstrualData]);
+  const profileCycles = useMemo(() => cycles.filter((c) => c.profileId === profileId), [cycles, profileId]);
   const today = useMemo(() => new Date(), []);
 
   const getPeriodStart = (key: PeriodKey): Date => {

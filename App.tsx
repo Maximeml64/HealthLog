@@ -1,15 +1,6 @@
 // App.tsx
 import * as Sentry from '@sentry/react-native';
-
-Sentry.init({
-  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-  tracesSampleRate: 1.0,
-  enableAutoSessionTracking: true,
-  sendDefaultPii: false,
-  enabled: !__DEV__,
-});
-
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, ActivityIndicator, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
@@ -19,12 +10,20 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { ensurePhotoDir } from './src/services/PhotoService';
 import { Colors, Spacing } from './src/utils/theme';
 
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 1.0,
+  enableAutoSessionTracking: true,
+  sendDefaultPii: false,
+  enabled: !__DEV__,
+});
+
 function App() {
   const loadAll = useAppStore((s) => s.loadAll);
   const loading = useAppStore((s) => s.loading);
   const [error, setError] = useState<string | null>(null);
 
-  const init = async () => {
+  const init = useCallback(async () => {
     setError(null);
     try {
       await ensurePhotoDir();
@@ -39,9 +38,9 @@ function App() {
       });
       setError(e instanceof Error ? e.message : 'Impossible de charger les données.');
     }
-  };
+  }, [loadAll]);
 
-  useEffect(() => { init(); }, []);
+  useEffect(() => { init(); }, [init]);
 
   if (loading) {
     return (

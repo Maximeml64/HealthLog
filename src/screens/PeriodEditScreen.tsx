@@ -10,7 +10,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { addDays, format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { useAppStore } from '../stores/useAppStore';
 import { useMenstrualStore } from '../stores/useMenstrualStore';
 import type { BloodColor, BloodTexture, DayLog, FlowIntensity, MenstrualSymptom } from '../types';
 import { BLOOD_COLOR_LABELS, BLOOD_TEXTURE_LABELS, FLOW_LABELS, SYMPTOM_LABELS } from '../constants/menstrualLabels';
@@ -44,18 +43,19 @@ export default function PeriodEditScreen() {
     profileId: string; mode: Mode; cycleId?: string; date?: string;
   };
 
-  const profiles = useAppStore((s) => s.profiles);
   const {
-    cycles, addCycle, updateCycle, deleteCycle,
-    upsertDayLog, getCycleById, getCyclesByProfile,
+    cycles, addCycle, updateCycle, deleteCycle, upsertDayLog,
   } = useMenstrualStore();
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const profileCycles = getCyclesByProfile(profileId);
+  const profileCycles = useMemo(
+    () => cycles.filter((c) => c.profileId === profileId),
+    [cycles, profileId]
+  );
 
   // Existing data for edit modes
   const existingCycle = useMemo(
-    () => (mode === 'editCycle' && cycleId ? getCycleById(cycleId) : undefined),
+    () => (mode === 'editCycle' && cycleId ? cycles.find((c) => c.id === cycleId) : undefined),
     [mode, cycleId, cycles]
   );
 
@@ -130,7 +130,7 @@ export default function PeriodEditScreen() {
     if (daysToShow.length > 0 && !daysToShow.includes(selectedDay)) {
       setSelectedDay(daysToShow[0]);
     }
-  }, [daysToShow]);
+  }, [daysToShow, selectedDay]);
 
   // ── Validation ────────────────────────────────────────────────────────────
 

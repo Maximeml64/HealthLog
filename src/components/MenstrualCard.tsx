@@ -44,13 +44,16 @@ interface MenstrualCardProps {
 
 export const MenstrualCard: React.FC<MenstrualCardProps> = ({ profileId, onPress }) => {
   const profiles = useAppStore((s) => s.profiles);
-  const { cycles, pregnancies, loadMenstrualData, getCyclesByProfile, getActivePregnancy } = useMenstrualStore();
+  const { cycles, pregnancies, loadMenstrualData } = useMenstrualStore();
 
-  useEffect(() => { loadMenstrualData(); }, []);
+  useEffect(() => { loadMenstrualData(); }, [loadMenstrualData]);
 
   const profile = profiles.find((p) => p.id === profileId);
-  const profileCycles = useMemo(() => getCyclesByProfile(profileId), [cycles, profileId]);
-  const activePregnancy = useMemo(() => getActivePregnancy(profileId), [pregnancies, profileId]);
+  const profileCycles = useMemo(() => cycles.filter((c) => c.profileId === profileId), [cycles, profileId]);
+  const activePregnancy = useMemo(
+    () => pregnancies.find((p) => p.profileId === profileId && p.endDate == null),
+    [pregnancies, profileId]
+  );
   const today = useMemo(() => new Date(), []);
 
   if (!profile) return null;

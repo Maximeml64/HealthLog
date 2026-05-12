@@ -7,7 +7,7 @@ import { Colors, Radius, Shadow, Spacing, Typography } from '../utils/theme';
 
 // ─── Mode definitions ─────────────────────────────────────────────────────────
 
-const MODES: Array<{ mode: MenstrualMode; icon: string; title: string; description: string }> = [
+const MODES: { mode: MenstrualMode; icon: string; title: string; description: string }[] = [
   {
     mode: 'tracking',
     icon: '📅',

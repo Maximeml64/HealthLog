@@ -6,5 +6,12 @@ module.exports = defineConfig([
   expoConfig,
   {
     ignores: ["dist/*"],
-  }
+  },
+  {
+    rules: {
+      // React Native's <Text> does not interpret HTML entities, so unescaped
+      // apostrophes (frequent in French copy) are safe; `&apos;` would render literally.
+      "react/no-unescaped-entities": "off",
+    },
+  },
 ]);

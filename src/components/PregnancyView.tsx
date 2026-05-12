@@ -9,7 +9,7 @@ import { useAppStore } from '../stores/useAppStore';
 import { useMenstrualStore } from '../stores/useMenstrualStore';
 import { getPregnancyTrimester, getPregnancyWeek } from '../utils/menstrualCalc';
 import type { PregnancyData } from '../types';
-import { Colors, Radius, Shadow, Spacing, Typography } from '../utils/theme';
+import { Colors, Radius, Spacing, Typography } from '../utils/theme';
 import { Card } from './UI';
 
 // ─── Constants ────────────────────────────────────────────────────────────────

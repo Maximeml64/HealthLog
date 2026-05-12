@@ -15,7 +15,7 @@ import { generateId } from '../utils/helpers';
 
 type ApptType = PregnancyData['appointments'][number]['type'];
 
-const APPT_TYPES: Array<{ type: ApptType; label: string; icon: string }> = [
+const APPT_TYPES: { type: ApptType; label: string; icon: string }[] = [
   { type: 'echo_1',        label: 'Écho 1er trim.',  icon: '🔊' },
   { type: 'echo_2',        label: 'Écho 2e trim.',   icon: '🔊' },
   { type: 'echo_3',        label: 'Écho 3e trim.',   icon: '🔊' },
@@ -28,8 +28,8 @@ const APPT_TYPES: Array<{ type: ApptType; label: string; icon: string }> = [
 
 export default function AppointmentEditScreen() {
   const navigation = useNavigation<any>();
-  const { profileId, pregnancyId, appointmentId, prefillType } = useRoute<any>().params as {
-    profileId: string; pregnancyId: string; appointmentId?: string; prefillType?: string;
+  const { pregnancyId, appointmentId, prefillType } = useRoute<any>().params as {
+    pregnancyId: string; appointmentId?: string; prefillType?: string;
   };
 
   const { pregnancies, addAppointment, updateAppointment, removeAppointment } = useMenstrualStore();

@@ -64,13 +64,13 @@ export interface PregnancyData {
   dueDate: string;         // LMP + 280 jours (éditable)
   endDate?: string;        // accouchement / fausse couche / IVG
   notes?: string;
-  appointments: Array<{
+  appointments: {
     id: string;
     date: string;          // ISO datetime
     type: 'echo_1' | 'echo_2' | 'echo_3' | 'consultation' | 'analysis' | 'other';
     label?: string;
     notes?: string;
-  }>;
+  }[];
   createdAt: string;
   updatedAt: string;
 }
