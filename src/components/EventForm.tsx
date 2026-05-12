@@ -1,6 +1,6 @@
 // src/components/EventForm.tsx
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,10 @@ import { Button, Avatar, IntensityPicker } from './UI';
 import { DateTimeField } from './DateTimeField';
 import { generateId } from '../utils/helpers';
 import { PhotoPicker } from './PhotoPicker';
+import { safeParseMeta } from '../utils/safeParse';
+import * as DraftService from '../services/DraftService';
+import type { EventDraft } from '../services/DraftService';
+import { LIMITS } from '../constants/limits';
 
 interface EventFormProps {
   profile: Profile;
@@ -24,6 +28,19 @@ interface EventFormProps {
   initialValues: HealthEvent | null;
   onSave: (event: HealthEvent) => void;
   onCancel: () => void;
+  /**
+   * When true (typical for the "new event" flow), the form persists its
+   * current state as a draft on every change so an accidental modal close
+   * doesn't lose user input. Set false when editing an existing event so
+   * we don't pollute the draft slot.
+   */
+  enableDraft?: boolean;
+  /**
+   * Optional pre-loaded draft to seed the form fields with. When provided
+   * (and there are no `initialValues`), the form uses these values
+   * instead of the type-based defaults.
+   */
+  draftSeed?: EventDraft | null;
 }
 
 function getDefaultUnit(type: EventType): string | null {
@@ -34,8 +51,7 @@ function getDefaultUnit(type: EventType): string | null {
 }
 
 function parseMeta(metaJson: string | null): Record<string, string> {
-  if (!metaJson) return {};
-  try { return JSON.parse(metaJson); } catch { return {}; }
+  return safeParseMeta<Record<string, string>>(metaJson) ?? {};
 }
 
 const TEMP_METHODS = ['oral', 'axillary', 'rectal', 'ear', 'forehead'] as const;
@@ -47,18 +63,58 @@ export const EventForm: React.FC<EventFormProps> = ({
   eventType,
   initialValues,
   onSave,
+  enableDraft = false,
+  draftSeed = null,
 }) => {
-  const [title, setTitle] = useState(initialValues?.title ?? EVENT_TYPE_LABELS[eventType]);
-  const [note, setNote] = useState(initialValues?.note ?? '');
-  const [numericValue, setNumericValue] = useState(
-    initialValues?.numeric_value != null ? String(initialValues.numeric_value).replace('.', ',') : ''
-  );
-  const [intensity, setIntensity] = useState<number | null>(initialValues?.intensity ?? null);
-  const [meta, setMeta] = useState<Record<string, string>>(parseMeta(initialValues?.metadata_json ?? null));
+  // Seed precedence: explicit initialValues (edit) > draftSeed (resumed) > defaults.
+  const seed = initialValues ?? draftSeed ?? null;
+  const isDraftSeed = !initialValues && !!draftSeed;
+
+  const [title, setTitle] = useState(seed?.title ?? EVENT_TYPE_LABELS[eventType]);
+  const [note, setNote] = useState(seed?.note ?? '');
+  const [numericValue, setNumericValue] = useState(() => {
+    if (isDraftSeed && draftSeed) return draftSeed.numeric_value;
+    if (initialValues?.numeric_value != null) {
+      return String(initialValues.numeric_value).replace('.', ',');
+    }
+    return '';
+  });
+  const [intensity, setIntensity] = useState<number | null>(seed?.intensity ?? null);
+  const [meta, setMeta] = useState<Record<string, string>>(() => {
+    if (isDraftSeed && draftSeed) return draftSeed.meta;
+    return parseMeta(initialValues?.metadata_json ?? null);
+  });
   const [occurredAt, setOccurredAt] = useState(
-    initialValues?.occurred_at ?? new Date().toISOString()
+    seed?.occurred_at ?? new Date().toISOString()
   );
-  const [photos, setPhotos] = useState<string[]>(initialValues?.photos ?? []);
+  const [photos, setPhotos] = useState<string[]>(seed?.photos ?? []);
+
+  // ── Draft auto-save ────────────────────────────────────────────────────
+  // Skipped on the first render so a freshly-loaded draft doesn't re-save
+  // itself immediately. Debounced via setTimeout to bunch up keystrokes.
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (!enableDraft) return;
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const handle = setTimeout(() => {
+      void DraftService.saveDraft({
+        profile_id: profile.id,
+        event_type: eventType,
+        title,
+        occurred_at: occurredAt,
+        note,
+        numeric_value: numericValue,
+        intensity,
+        meta,
+        photos,
+        saved_at: new Date().toISOString(),
+      });
+    }, LIMITS.DRAFT_AUTOSAVE_MS);
+    return () => clearTimeout(handle);
+  }, [enableDraft, profile.id, eventType, title, occurredAt, note, numericValue, intensity, meta, photos]);
 
   const handleSave = () => {
     if (!title.trim()) {
@@ -97,6 +153,9 @@ export const EventForm: React.FC<EventFormProps> = ({
         };
 
     onSave(event);
+    if (enableDraft) {
+      void DraftService.clearDraft();
+    }
   };
 
   return (

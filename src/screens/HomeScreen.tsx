@@ -13,17 +13,39 @@ import { FAB } from '../components/FAB';
 import { AddEventModal } from '../components/AddEventModal';
 import { MenstrualCard } from '../components/MenstrualCard';
 import { formatRelativeTime } from '../utils/helpers';
-import { parseISO } from 'date-fns';
+import { parseISO, subDays, startOfDay } from 'date-fns';
+import {
+  EVENT_TYPE_ICONS,
+  EVENT_TYPE_LABELS,
+  type EventType,
+} from '../types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+// Event types exposed as one-tap shortcuts on the Home screen.
+// Order matters — these are the five most likely "log right now" actions
+// based on real-world family-journal usage.
+const QUICK_ADD_TYPES: EventType[] = ['temperature', 'symptom', 'medication', 'mood', 'note'];
+
 export default function HomeScreen() {
-  const { profiles, events, reminders, settings, loadAll, upsertEvent } = useAppStore();
+  // Individual selectors so unrelated mutations (e.g. a reminder being
+  // toggled) don't force this screen to re-render.
+  const profiles = useAppStore((s) => s.profiles);
+  const events = useAppStore((s) => s.events);
+  const reminders = useAppStore((s) => s.reminders);
+  const settings = useAppStore((s) => s.settings);
+  const loadAll = useAppStore((s) => s.loadAll);
+  const upsertEvent = useAppStore((s) => s.upsertEvent);
+
   const [addModalVisible, setAddModalVisible] = useState(false);
+  const [quickAddType, setQuickAddType] = useState<EventType | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation<Nav>();
 
-  const activeProfiles = profiles.filter((p) => !p.archived);
+  const activeProfiles = useMemo(
+    () => profiles.filter((p) => !p.archived),
+    [profiles],
+  );
 
   // Profile à afficher dans la MenstrualCard : default_profile si tracking activé, sinon premier avec tracking
   const menstrualProfileId = useMemo(() => {
@@ -32,19 +54,44 @@ export default function HomeScreen() {
     return activeProfiles.find((p) => p.menstrualTrackingEnabled)?.id ?? null;
   }, [profiles, settings.default_profile_id, activeProfiles]);
 
-  const recentEvents = useMemo(() =>
-    [...events]
-      .sort((a, b) => parseISO(b.occurred_at).getTime() - parseISO(a.occurred_at).getTime())
-      .slice(0, 5),
-    [events]
+  // ── Stats this week ────────────────────────────────────────────────────────
+  const weekStats = useMemo(() => {
+    const weekAgo = subDays(startOfDay(new Date()), 7);
+    const weekEvents = events.filter((e) => parseISO(e.occurred_at) >= weekAgo);
+    const temperatures = weekEvents
+      .filter((e) => e.event_type === 'temperature' && e.numeric_value !== null)
+      .map((e) => e.numeric_value as number);
+    const medications = weekEvents.filter((e) => e.event_type === 'medication').length;
+    const symptoms = weekEvents.filter((e) => e.event_type === 'symptom').length;
+    const tempMin = temperatures.length > 0 ? Math.min(...temperatures) : null;
+    const tempMax = temperatures.length > 0 ? Math.max(...temperatures) : null;
+    return {
+      total: weekEvents.length,
+      tempCount: temperatures.length,
+      tempMin,
+      tempMax,
+      medications,
+      symptoms,
+    };
+  }, [events]);
+
+  // Pre-sort once. Sorting all events to keep only 5 is fine here for
+  // typical N (a few hundred); replace with a top-k heap if it ever grows.
+  const recentEvents = useMemo(
+    () =>
+      [...events]
+        .sort((a, b) => parseISO(b.occurred_at).getTime() - parseISO(a.occurred_at).getTime())
+        .slice(0, 5),
+    [events],
   );
 
-  const upcomingReminders = useMemo(() =>
-    reminders
-      .filter((r) => r.active && new Date(r.scheduled_at) > new Date())
-      .sort((a, b) => parseISO(a.scheduled_at).getTime() - parseISO(b.scheduled_at).getTime())
-      .slice(0, 3),
-    [reminders]
+  const upcomingReminders = useMemo(
+    () =>
+      reminders
+        .filter((r) => r.active && new Date(r.scheduled_at) > new Date())
+        .sort((a, b) => parseISO(a.scheduled_at).getTime() - parseISO(b.scheduled_at).getTime())
+        .slice(0, 3),
+    [reminders],
   );
 
   const onRefresh = async () => {
@@ -54,6 +101,50 @@ export default function HomeScreen() {
   };
 
   const getProfile = (id: string) => profiles.find((p) => p.id === id);
+
+  const openQuickAdd = (type: EventType) => {
+    setQuickAddType(type);
+    setAddModalVisible(true);
+  };
+
+  const handleModalClose = () => {
+    setAddModalVisible(false);
+    setQuickAddType(null);
+  };
+
+  // Stat tiles — only render when there's something to show, so the
+  // dashboard doesn't shout at empty-state users.
+  const statTiles = useMemo(() => {
+    const tiles: { icon: string; label: string; value: string }[] = [];
+    if (weekStats.total > 0) {
+      tiles.push({
+        icon: '📊',
+        label: 'Cette semaine',
+        value: `${weekStats.total} évén.`,
+      });
+    }
+    if (weekStats.tempCount > 0 && weekStats.tempMin !== null && weekStats.tempMax !== null) {
+      const range = weekStats.tempMin === weekStats.tempMax
+        ? `${weekStats.tempMin.toFixed(1).replace('.', ',')}°C`
+        : `${weekStats.tempMin.toFixed(1).replace('.', ',')}–${weekStats.tempMax.toFixed(1).replace('.', ',')}°C`;
+      tiles.push({ icon: '🌡️', label: 'Températures', value: range });
+    }
+    if (weekStats.medications > 0) {
+      tiles.push({
+        icon: '💊',
+        label: 'Médicaments',
+        value: `${weekStats.medications} prise${weekStats.medications > 1 ? 's' : ''}`,
+      });
+    }
+    if (weekStats.symptoms > 0) {
+      tiles.push({
+        icon: '🤒',
+        label: 'Symptômes',
+        value: `${weekStats.symptoms} note${weekStats.symptoms > 1 ? 's' : ''}`,
+      });
+    }
+    return tiles;
+  }, [weekStats]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -73,6 +164,41 @@ export default function HomeScreen() {
             {"📋 Outil d'organisation personnelle — Ne remplace pas un professionnel de santé"}
           </Text>
         </View>
+
+        {/* ── Stats dashboard (only when there's data this week) ───────────── */}
+        {statTiles.length > 0 && (
+          <View style={styles.statsRow}>
+            {statTiles.map((tile) => (
+              <View key={tile.label} style={styles.statTile}>
+                <Text style={styles.statIcon}>{tile.icon}</Text>
+                <Text style={styles.statValue}>{tile.value}</Text>
+                <Text style={styles.statLabel}>{tile.label}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* ── Quick add ────────────────────────────────────────────────────── */}
+        {activeProfiles.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader title="Ajouter rapidement" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickRow}>
+              {QUICK_ADD_TYPES.map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  onPress={() => openQuickAdd(type)}
+                  style={styles.quickTile}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Ajouter rapidement ${EVENT_TYPE_LABELS[type]}`}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                >
+                  <Text style={styles.quickIcon}>{EVENT_TYPE_ICONS[type]}</Text>
+                  <Text style={styles.quickLabel} numberOfLines={1}>{EVENT_TYPE_LABELS[type]}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {activeProfiles.length > 0 && (
           <View style={styles.section}>
@@ -155,9 +281,10 @@ export default function HomeScreen() {
       <AddEventModal
         visible={addModalVisible}
         profiles={profiles}
-        onClose={() => setAddModalVisible(false)}
+        onClose={handleModalClose}
         onSave={upsertEvent}
         defaultProfileId={settings.default_profile_id}
+        defaultEventType={quickAddType}
       />
     </SafeAreaView>
   );
@@ -175,6 +302,45 @@ const styles = StyleSheet.create({
     padding: Spacing.md, marginBottom: Spacing.lg,
   },
   legalText: { fontSize: 11, color: '#FFFFFF', fontWeight: '500', lineHeight: 16 },
+
+  // ── Stats dashboard ─────────────────────────────────────────────────────
+  statsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginBottom: Spacing.xl,
+  },
+  statTile: {
+    flexGrow: 1,
+    minWidth: '47%',
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.md,
+    gap: 2,
+  },
+  statIcon: { fontSize: 18, marginBottom: 2 },
+  statValue: { fontSize: 16, fontWeight: '700', color: Colors.text },
+  statLabel: { fontSize: 11, color: Colors.textMuted, fontWeight: '500' },
+
+  // ── Quick add ────────────────────────────────────────────────────────────
+  quickRow: { gap: Spacing.sm, paddingRight: Spacing.lg },
+  quickTile: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    minWidth: 80,
+    gap: 4,
+  },
+  quickIcon: { fontSize: 22 },
+  quickLabel: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary, maxWidth: 80 },
+
   section: { marginBottom: Spacing.xl },
   profilesRow: { gap: Spacing.sm, paddingRight: Spacing.lg },
   profileCard: {

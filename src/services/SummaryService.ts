@@ -3,6 +3,7 @@
 import { HealthEvent, Profile, EVENT_TYPE_LABELS } from '../types';
 import { format, parseISO, isWithinInterval } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { safeParseMeta } from '../utils/safeParse';
 
 export interface EpisodeSummary {
   profile: Profile;
@@ -41,28 +42,20 @@ export function generateEpisodeSummary(
   const medications = filtered
     .filter((e) => e.event_type === 'medication')
     .map((e) => {
-      try {
-        const meta = e.metadata_json ? JSON.parse(e.metadata_json) : null;
-        return meta?.medication_name ?? e.title;
-      } catch {
-        return e.title;
-      }
+      const meta = safeParseMeta<Record<string, string>>(e.metadata_json);
+      return meta?.medication_name ?? e.title;
     })
     .filter((v, i, a) => a.indexOf(v) === i);
 
   const appointments = filtered
     .filter((e) => e.event_type === 'appointment')
     .map((e) => {
-      try {
-        const meta = e.metadata_json ? JSON.parse(e.metadata_json) : null;
-        return {
-          title: e.title,
-          date: format(parseISO(e.occurred_at), 'dd MMMM', { locale: fr }),
-          practitioner: meta?.practitioner,
-        };
-      } catch {
-        return { title: e.title, date: format(parseISO(e.occurred_at), 'dd MMMM', { locale: fr }) };
-      }
+      const meta = safeParseMeta<Record<string, string>>(e.metadata_json);
+      return {
+        title: e.title,
+        date: format(parseISO(e.occurred_at), 'dd MMMM', { locale: fr }),
+        practitioner: meta?.practitioner,
+      };
     });
 
   const periodStr = `du ${format(start, 'dd MMMM', { locale: fr })} au ${format(end, 'dd MMMM yyyy', { locale: fr })}`;

@@ -7,6 +7,7 @@ import {
   Modal,
   TouchableOpacity,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -19,6 +20,8 @@ import {
 import { Colors, Typography, Spacing, Radius } from '../utils/theme';
 import { Avatar } from './UI';
 import { EventForm } from './EventForm';
+import * as DraftService from '../services/DraftService';
+import type { EventDraft } from '../services/DraftService';
 
 interface AddEventModalProps {
   visible: boolean;
@@ -26,6 +29,8 @@ interface AddEventModalProps {
   onClose: () => void;
   onSave: (event: HealthEvent) => Promise<void>;
   defaultProfileId?: string | null;
+  /** When set, skips the type-picker step (used by Quick-add on Home). */
+  defaultEventType?: EventType | null;
 }
 
 const EVENT_TYPES: EventType[] = [
@@ -43,18 +48,96 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   onClose,
   onSave,
   defaultProfileId,
+  defaultEventType,
 }) => {
   const activeProfiles = profiles.filter((p) => !p.archived);
 
-  const [step, setStep] = useState<Step>(defaultProfileId ? 'type' : 'profile');
+  // Compute initial step from BOTH default props so Quick-add (type + profile)
+  // can jump straight to the form.
+  const initialStep: Step = defaultEventType && defaultProfileId
+    ? 'form'
+    : defaultProfileId
+      ? 'type'
+      : 'profile';
+
+  const [step, setStep] = useState<Step>(initialStep);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(defaultProfileId ?? null);
-  const [selectedType, setSelectedType] = useState<EventType | null>(null);
+  const [selectedType, setSelectedType] = useState<EventType | null>(defaultEventType ?? null);
+  const [resumedDraft, setResumedDraft] = useState<EventDraft | null>(null);
 
   const reset = useCallback(() => {
-    setStep(defaultProfileId ? 'type' : 'profile');
+    setStep(
+      defaultEventType && defaultProfileId
+        ? 'form'
+        : defaultProfileId
+          ? 'type'
+          : 'profile',
+    );
     setSelectedProfileId(defaultProfileId ?? null);
-    setSelectedType(null);
-  }, [defaultProfileId]);
+    setSelectedType(defaultEventType ?? null);
+    setResumedDraft(null);
+  }, [defaultProfileId, defaultEventType]);
+
+  // Re-sync when the consumer changes the defaultEventType (e.g. user taps a
+  // different Quick-add button while the modal is open).
+  React.useEffect(() => {
+    if (visible) {
+      setSelectedType(defaultEventType ?? null);
+      if (defaultEventType && (defaultProfileId || selectedProfileId)) {
+        setStep('form');
+      }
+    }
+    // We deliberately re-run only when `visible` or `defaultEventType` changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, defaultEventType]);
+
+  // On open: check for a saved draft and offer to resume it. We only prompt
+  // when the user hasn't passed an explicit Quick-add type — otherwise the
+  // Quick-add intent takes precedence over a stale draft.
+  React.useEffect(() => {
+    if (!visible || defaultEventType) return;
+    let cancelled = false;
+    (async () => {
+      const draft = await DraftService.loadDraft();
+      if (cancelled) return;
+      if (!draft || DraftService.isDraftEmpty(draft)) {
+        // Nothing useful to resume — clean up any empty draft so we don't
+        // keep prompting.
+        if (draft) void DraftService.clearDraft();
+        return;
+      }
+      // Make sure the referenced profile still exists; archived profiles
+      // are fine (still resumable), deleted ones aren't.
+      const profileStillExists = profiles.some((p) => p.id === draft.profile_id);
+      if (!profileStillExists) {
+        void DraftService.clearDraft();
+        return;
+      }
+      Alert.alert(
+        'Reprendre votre brouillon ?',
+        `Un événement non enregistré (${EVENT_TYPE_LABELS[draft.event_type] ?? draft.event_type}) est en attente.`,
+        [
+          {
+            text: 'Supprimer',
+            style: 'destructive',
+            onPress: () => { void DraftService.clearDraft(); },
+          },
+          {
+            text: 'Reprendre',
+            onPress: () => {
+              setSelectedProfileId(draft.profile_id);
+              setSelectedType(draft.event_type);
+              setResumedDraft(draft);
+              setStep('form');
+            },
+          },
+        ],
+        { cancelable: true },
+      );
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   const handleClose = () => {
     reset();
@@ -122,6 +205,10 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
           <View style={styles.header}>
             <TouchableOpacity
               onPress={step === 'profile' ? handleClose : () => setStep(step === 'form' ? 'type' : 'profile')}
+              accessibilityRole="button"
+              accessibilityLabel={step === 'profile' ? 'Fermer' : 'Étape précédente'}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={styles.backBtnWrap}
             >
               <Text style={styles.backBtn}>{step === 'profile' ? '✕' : '←'}</Text>
             </TouchableOpacity>
@@ -154,6 +241,12 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
                 initialValues={null}
                 onSave={handleFormSave}
                 onCancel={() => setStep('type')}
+                enableDraft
+                draftSeed={
+                  resumedDraft && resumedDraft.profile_id === selectedProfile.id && resumedDraft.event_type === selectedType
+                    ? resumedDraft
+                    : null
+                }
               />
             )}
           </View>
@@ -173,6 +266,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
+  backBtnWrap: { padding: Spacing.xs },
   backBtn: { fontSize: 20, color: Colors.textSecondary, width: 40 },
   headerTitle: { ...Typography.h3 },
   progress: {

@@ -10,6 +10,8 @@ import {
   Alert,
   Switch,
   Linking,
+  ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -337,6 +339,26 @@ export default function SettingsScreen() {
 
         <View style={{ height: 80 }} />
       </ScrollView>
+
+      {/* ── Export / import progress overlay ──────────────────────────────── */}
+      <Modal
+        visible={isBackingUp || isRestoring}
+        transparent
+        animationType="fade"
+        onRequestClose={() => { /* not user-cancellable */ }}
+      >
+        <View style={styles.overlay} accessibilityRole="alert" accessibilityLiveRegion="polite">
+          <View style={styles.overlayCard}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.overlayText}>
+              {isBackingUp ? 'Préparation de la sauvegarde…' : 'Restauration en cours…'}
+            </Text>
+            <Text style={styles.overlayHint}>
+              Merci de ne pas fermer l'app.
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -435,5 +457,31 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '500',
     textAlign: 'center',
+  },
+
+  // ── Export / import progress overlay ─────────────────────────────────────
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  overlayCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    gap: Spacing.md,
+    minWidth: 220,
+  },
+  overlayText: {
+    ...Typography.h3,
+    textAlign: 'center',
+  },
+  overlayHint: {
+    ...Typography.bodySmall,
+    textAlign: 'center',
+    color: Colors.textMuted,
   },
 });

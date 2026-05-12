@@ -206,11 +206,22 @@ export default function PeriodEditScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Annuler">
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Annuler"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
           <Text style={styles.headerCancel}>Annuler</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
-        <TouchableOpacity onPress={handleSave} disabled={saving} accessibilityRole="button" accessibilityLabel="Enregistrer">
+        <TouchableOpacity
+          onPress={handleSave}
+          disabled={saving}
+          accessibilityRole="button"
+          accessibilityLabel="Enregistrer"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
           <Text style={[styles.headerSave, saving && { opacity: 0.5 }]}>{saving ? '…' : 'Enregistrer'}</Text>
         </TouchableOpacity>
       </View>

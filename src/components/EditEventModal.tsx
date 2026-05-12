@@ -37,7 +37,12 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.safeArea}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={onClose}>
+            <TouchableOpacity
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Fermer"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
               <Text style={styles.closeBtn}>✕</Text>
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Modifier l'événement</Text>

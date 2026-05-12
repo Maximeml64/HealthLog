@@ -164,7 +164,7 @@ export default function PrescriptionEditScreen() {
       Alert.alert('Permission refusée', "L'accès à la caméra est nécessaire.");
       return;
     }
-    const result = await ImagePicker.launchCameraAsync({ mediaTypes: 'images' as any, quality: 0.8 });
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
     if (!result.canceled && result.assets.length > 0) {
       const saved = await PhotoService.savePhoto(result.assets[0].uri);
       updateForm({ image_uri: saved });
@@ -177,7 +177,7 @@ export default function PrescriptionEditScreen() {
       Alert.alert('Permission refusée', "L'accès à la galerie est nécessaire.");
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images' as any, quality: 0.8 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
     if (!result.canceled && result.assets.length > 0) {
       const saved = await PhotoService.savePhoto(result.assets[0].uri);
       updateForm({ image_uri: saved });
@@ -306,6 +306,7 @@ export default function PrescriptionEditScreen() {
           onPress={handleCancel}
           accessibilityRole="button"
           accessibilityLabel="Annuler"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Text style={styles.headerCancel}>Annuler</Text>
         </TouchableOpacity>

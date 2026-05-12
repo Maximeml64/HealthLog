@@ -2,6 +2,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 import { Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../utils/theme';
@@ -25,7 +26,7 @@ import PregnancyStartScreen from '../screens/PregnancyStartScreen';
 import AppointmentEditScreen from '../screens/AppointmentEditScreen';
 
 export type RootStackParamList = {
-  Tabs: undefined;
+  Tabs: NavigatorScreenParams<TabParamList> | undefined;
   EventDetail: { eventId: string };
   ProfileDetail: { profileId: string };
   PrescriptionsList: undefined;

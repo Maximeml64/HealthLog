@@ -22,6 +22,7 @@ import { generateMedicalPdf } from '../services/PdfExportService';
 import { TemperatureChart } from '../components/TemperatureChart';
 import { RELATION_TYPE_LABELS, EVENT_TYPE_ICONS, EventType, Sex } from '../types';
 import { formatAge } from '../utils/helpers';
+import { safeParseMeta } from '../utils/safeParse';
 
 const SEX_LABELS: Record<Sex, string> = {
   female: 'Femme',
@@ -100,11 +101,9 @@ export default function ProfileDetailScreen() {
     return filteredEvents.filter((e) => {
       if (e.title.toLowerCase().includes(q)) return true;
       if (e.note.toLowerCase().includes(q)) return true;
-      if (e.metadata_json) {
-        try {
-          const meta = JSON.parse(e.metadata_json) as Record<string, string>;
-          return Object.values(meta).some((v) => String(v).toLowerCase().includes(q));
-        } catch { /* ignore */ }
+      const meta = safeParseMeta<Record<string, string>>(e.metadata_json);
+      if (meta) {
+        return Object.values(meta).some((v) => String(v).toLowerCase().includes(q));
       }
       return false;
     });
@@ -152,7 +151,13 @@ export default function ProfileDetailScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={[styles.profileHeader, { borderBottomColor: profile.color + '33' }]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Retour">
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
             <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
           <Avatar name={profile.display_name} color={profile.color} size={64} />

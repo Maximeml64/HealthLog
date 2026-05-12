@@ -34,7 +34,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: 'images' as any,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.7,
     });
     if (!result.canceled && result.assets.length > 0) {
@@ -53,7 +53,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: 'images' as any,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.7,
       allowsMultipleSelection: false,
     });

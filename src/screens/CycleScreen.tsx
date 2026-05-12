@@ -1,7 +1,7 @@
 // src/screens/CycleScreen.tsx
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
+import { Alert, AppState, StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -65,9 +65,30 @@ export default function CycleScreen() {
 
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [modeSwitcherVisible, setModeSwitcherVisible] = useState(false);
-  const today = useMemo(() => new Date(), []);
+  // `today` was previously useMemo([], []) which froze the date at first render.
+  // Now: state initialised once, refreshed on app foreground and every 60s if
+  // the day changed. Phase / fertility / prediction memos depend on it, so a
+  // day rollover correctly invalidates them.
+  const [today, setToday] = useState(() => new Date());
 
   useEffect(() => { loadMenstrualData(); }, [loadMenstrualData]);
+
+  useEffect(() => {
+    const refresh = () => {
+      const now = new Date();
+      setToday((prev) =>
+        format(prev, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd') ? prev : now,
+      );
+    };
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refresh();
+    });
+    const id = setInterval(refresh, 60_000);
+    return () => {
+      sub.remove();
+      clearInterval(id);
+    };
+  }, []);
 
   const profile = profiles.find((p) => p.id === profileId);
   const profileCycles = useMemo(() => cycles.filter((c) => c.profileId === profileId), [cycles, profileId]);
@@ -134,7 +155,13 @@ export default function CycleScreen() {
   if (!(profile.menstrualTrackingEnabled ?? false)) {
     return (
       <SafeAreaView style={styles.safe}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Retour">
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <EmptyState
@@ -163,14 +190,26 @@ export default function CycleScreen() {
   // Shared header rendered across all 3 modes
   const sharedHeader = (title: string) => (
     <View style={styles.header}>
-      <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Retour">
+      <TouchableOpacity
+        style={styles.backBtn}
+        onPress={() => navigation.goBack()}
+        accessibilityRole="button"
+        accessibilityLabel="Retour"
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+      >
         <Text style={styles.backText}>←</Text>
       </TouchableOpacity>
       <View style={styles.headerCenter}>
         <Text style={styles.headerTitle}>{title}</Text>
         <Text style={styles.headerSub}>{profile.display_name}</Text>
       </View>
-      <TouchableOpacity style={styles.settingsBtn} onPress={() => setModeSwitcherVisible(true)} accessibilityRole="button" accessibilityLabel="Changer de mode">
+      <TouchableOpacity
+        style={styles.settingsBtn}
+        onPress={() => setModeSwitcherVisible(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Changer de mode"
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+      >
         <Text style={styles.settingsIcon}>⚙️</Text>
       </TouchableOpacity>
     </View>

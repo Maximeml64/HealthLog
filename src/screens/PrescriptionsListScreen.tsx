@@ -191,7 +191,7 @@ export default function PrescriptionsListScreen() {
           subtitle="Crée d'abord un profil pour gérer les ordonnances."
           action={{
             label: 'Créer un profil',
-            onPress: () => navigation.navigate('Tabs' as any),
+            onPress: () => navigation.navigate('Tabs', { screen: 'Profiles' }),
           }}
         />
       </SafeAreaView>

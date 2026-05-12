@@ -222,13 +222,29 @@ export async function importBackup(
   if (!dataFile) throw new Error('Format invalide : data.json introuvable dans le ZIP.');
 
   const dataJson = await dataFile.async('string');
-  const data = JSON.parse(dataJson) as BackupData;
+  let data: BackupData;
+  try {
+    data = JSON.parse(dataJson) as BackupData;
+  } catch {
+    throw new Error('Format invalide : data.json est corrompu.');
+  }
 
   // Guard: accept v1 (legacy, no prescriptions/menstrual), v2 (no menstrual), v3
   const version = data.metadata?.version;
   if (version !== 1 && version !== 2 && version !== 3) {
     throw new Error('Format incompatible : version de backup non supportée.');
   }
+
+  // Minimal shape check — prevent a malformed JSON from corrupting storage
+  if (!Array.isArray(data.profiles) || !Array.isArray(data.events) || !Array.isArray(data.reminders)) {
+    throw new Error('Format invalide : champs profils / événements / rappels manquants.');
+  }
+
+  // Strip premium flag: backups must never grant entitlements. The user's
+  // RevenueCat sync handles premium state; we only restore user preferences.
+  const safeSettings: AppSettings | undefined = data.settings
+    ? { ...data.settings, premium: false }
+    : undefined;
 
   const isV2 = version === 2 || version === 3;
   const isV3 = version === 3;
@@ -279,7 +295,7 @@ export async function importBackup(
       saveProfiles(data.profiles),
       saveEvents(restoredEvents),
       saveReminders(data.reminders),
-      saveSettings(data.settings),
+      ...(safeSettings ? [saveSettings(safeSettings)] : []),
       ...(isV2
         ? [
             savePrescriptions(restoredPrescriptions),

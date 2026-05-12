@@ -5,6 +5,7 @@ import { format, parseISO, differenceInYears } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Profile, HealthEvent, EVENT_TYPE_LABELS, INTENSITY_LABELS, TEMPERATURE_METHOD_LABELS } from '../types';
 import { generateEpisodeSummary } from './SummaryService';
+import { safeParseMeta } from '../utils/safeParse';
 
 function escapeHtml(str: string): string {
   return str
@@ -31,21 +32,17 @@ function buildEventHtml(event: HealthEvent): string {
   }
 
   let metaHtml = '';
-  if (event.metadata_json) {
-    try {
-      const meta = JSON.parse(event.metadata_json) as Record<string, string>;
-      const parts: string[] = [];
-      if (meta.medication_name) parts.push(`Médicament : ${escapeHtml(meta.medication_name)}`);
-      if (meta.dosage_text) parts.push(`Dosage : ${escapeHtml(meta.dosage_text)}`);
-      if (meta.practitioner) parts.push(`Praticien : ${escapeHtml(meta.practitioner)}`);
-      if (meta.location) parts.push(`Lieu : ${escapeHtml(meta.location)}`);
-      if (meta.method) parts.push(`Méthode : ${escapeHtml(TEMPERATURE_METHOD_LABELS[meta.method] ?? meta.method)}`);
-      if (meta.category) parts.push(`Catégorie : ${escapeHtml(meta.category)}`);
-      if (parts.length > 0) {
-        metaHtml = `<div class="event-meta">${parts.join(' · ')}</div>`;
-      }
-    } catch {
-      // ignore malformed metadata
+  const meta = safeParseMeta<Record<string, string>>(event.metadata_json);
+  if (meta) {
+    const parts: string[] = [];
+    if (meta.medication_name) parts.push(`Médicament : ${escapeHtml(meta.medication_name)}`);
+    if (meta.dosage_text) parts.push(`Dosage : ${escapeHtml(meta.dosage_text)}`);
+    if (meta.practitioner) parts.push(`Praticien : ${escapeHtml(meta.practitioner)}`);
+    if (meta.location) parts.push(`Lieu : ${escapeHtml(meta.location)}`);
+    if (meta.method) parts.push(`Méthode : ${escapeHtml(TEMPERATURE_METHOD_LABELS[meta.method] ?? meta.method)}`);
+    if (meta.category) parts.push(`Catégorie : ${escapeHtml(meta.category)}`);
+    if (parts.length > 0) {
+      metaHtml = `<div class="event-meta">${parts.join(' · ')}</div>`;
     }
   }
 

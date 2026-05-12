@@ -78,6 +78,7 @@ export default function PrescriptionDetailScreen() {
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
             accessibilityLabel="Retour"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
             <Text style={styles.headerBack}>← Retour</Text>
           </TouchableOpacity>
@@ -166,6 +167,7 @@ export default function PrescriptionDetailScreen() {
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
           accessibilityLabel="Retour"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Text style={styles.headerBack}>← Retour</Text>
         </TouchableOpacity>

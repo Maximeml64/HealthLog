@@ -1,5 +1,6 @@
 // src/stores/useAppStore.ts
 
+import * as Sentry from '@sentry/react-native';
 import { create } from 'zustand';
 import {
   Profile,
@@ -58,6 +59,54 @@ const DEFAULT_SETTINGS: AppSettings = {
   legal_accepted: false,
 };
 
+/**
+ * Reads stored reminders, migrates any legacy `notification_id` rows
+ * into the array-based `notification_ids`, and re-schedules active
+ * recurring reminders so they never run out of OS-scheduled
+ * occurrences. Idempotent; safe to call on every app boot.
+ */
+async function migrateAndRescheduleReminders(stored: Reminder[]): Promise<Reminder[]> {
+  // Normalize legacy shape upfront so downstream code only deals with
+  // notification_ids: string[].
+  const normalized = stored.map((r) => {
+    if (!Array.isArray(r.notification_ids)) {
+      const legacy = r.notification_id ? [r.notification_id] : [];
+      return { ...r, notification_ids: legacy, notification_id: null };
+    }
+    return r.notification_id ? { ...r, notification_id: null } : r;
+  });
+
+  let migrated: Reminder[];
+  try {
+    migrated = await NotificationService.rescheduleActiveReminders(normalized);
+  } catch (e) {
+    Sentry.captureException(e, { tags: { context: 'reminder_reschedule_boot' } });
+    migrated = normalized;
+  }
+
+  // Persist only if anything actually changed (avoid an unnecessary write
+  // on cold boot when no migration was needed).
+  const changed =
+    migrated.length !== stored.length ||
+    migrated.some((m, i) => {
+      const s = stored[i];
+      if (!s || s.id !== m.id) return true;
+      if ((s.notification_id ?? null) !== (m.notification_id ?? null)) return true;
+      const a = m.notification_ids ?? [];
+      const b = s.notification_ids ?? [];
+      if (a.length !== b.length) return true;
+      return a.some((id, j) => id !== b[j]);
+    });
+  if (changed) {
+    try {
+      await Storage.saveReminders(migrated);
+    } catch (e) {
+      Sentry.captureException(e, { tags: { context: 'reminder_persist_boot' } });
+    }
+  }
+  return migrated;
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
   profiles: [],
   events: [],
@@ -71,7 +120,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   loadAll: async () => {
     set({ loading: true });
-    const [profiles, events, reminders, settings, prescriptions, prescribedMedications] =
+    const [profiles, events, storedReminders, settings, prescriptions, prescribedMedications] =
       await Promise.all([
         Storage.getProfiles(),
         Storage.getEvents(),
@@ -80,6 +129,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         Storage.getPrescriptions(),
         Storage.getPrescribedMedications(),
       ]);
+    const reminders = await migrateAndRescheduleReminders(storedReminders);
     set({ profiles, events, reminders, settings, prescriptions, prescribedMedications, loading: false });
   },
 
@@ -93,9 +143,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   deleteProfile: async (id) => {
     const profileEvents = get().events.filter((e) => e.profile_id === id);
-    await Promise.all(
-      profileEvents.flatMap((e) => e.photos.map(PhotoService.deletePhoto))
+    const photoResults = await Promise.allSettled(
+      profileEvents.flatMap((e) => e.photos.map(PhotoService.deletePhoto)),
     );
+    photoResults
+      .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+      .forEach((r) =>
+        Sentry.captureException(r.reason, { tags: { context: 'delete_profile_photo' } }),
+      );
     await Storage.deleteProfile(id);
     const [profiles, events] = await Promise.all([Storage.getProfiles(), Storage.getEvents()]);
     set({ profiles, events });
@@ -121,7 +176,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   deleteEvent: async (id) => {
     const event = get().events.find((e) => e.id === id);
     if (event) {
-      await Promise.all(event.photos.map(PhotoService.deletePhoto));
+      const photoResults = await Promise.allSettled(
+        event.photos.map(PhotoService.deletePhoto),
+      );
+      photoResults
+        .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+        .forEach((r) =>
+          Sentry.captureException(r.reason, { tags: { context: 'delete_event_photo' } }),
+        );
     }
     await Storage.deleteEvent(id);
     const events = await Storage.getEvents();
@@ -192,7 +254,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     // 2. Delete prescription photo from the local filesystem
     const prescription = get().prescriptions.find((p) => p.id === id);
     if (prescription?.image_uri) {
-      await PhotoService.deletePhoto(prescription.image_uri);
+      try {
+        await PhotoService.deletePhoto(prescription.image_uri);
+      } catch (e) {
+        Sentry.captureException(e, { tags: { context: 'delete_prescription_photo' } });
+      }
     }
 
     // 3. Cascade Storage delete: SecureNotes + meds + reminders rows in AsyncStorage

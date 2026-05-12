@@ -7,6 +7,7 @@ import { Colors, Typography, Spacing, Radius } from '../utils/theme';
 import { INTENSITY_COLORS } from '../constants/healthColors';
 import { formatDate } from '../utils/helpers';
 import { Avatar } from './UI';
+import { safeParseMeta } from '../utils/safeParse';
 
 interface EventCardProps {
   event: HealthEvent;
@@ -61,9 +62,7 @@ export const EventCard: React.FC<EventCardProps> = ({
     return null;
   };
 
-  const parsedMeta = (() => {
-    try { return event.metadata_json ? JSON.parse(event.metadata_json) : null; } catch { return null; }
-  })();
+  const parsedMeta = safeParseMeta(event.metadata_json);
 
   const buildA11yLabel = () => {
     let typeInfo = label;

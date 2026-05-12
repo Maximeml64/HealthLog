@@ -127,6 +127,7 @@ export default function PaywallScreen() {
         onPress={() => navigation.goBack()}
         accessibilityRole="button"
         accessibilityLabel="Fermer"
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
         <Text style={styles.closeBtnText}>✕</Text>
       </TouchableOpacity>

@@ -24,6 +24,7 @@ import { Colors, Typography, Spacing } from '../utils/theme';
 import { Card, Avatar, Badge, Button } from '../components/UI';
 import { EditEventModal } from '../components/EditEventModal';
 import { formatDate } from '../utils/helpers';
+import { safeParseMeta } from '../utils/safeParse';
 
 export default function EventDetailScreen() {
   const route = useRoute<any>();
@@ -50,22 +51,32 @@ export default function EventDetailScreen() {
   const icon = EVENT_TYPE_ICONS[event.event_type] ?? '📝';
   const label = EVENT_TYPE_LABELS[event.event_type] ?? event.event_type;
 
-  let parsedMeta: Record<string, string> | null = null;
-  try {
-    parsedMeta = event.metadata_json ? JSON.parse(event.metadata_json) : null;
-  } catch {
-    parsedMeta = null;
-  }
+  const parsedMeta = safeParseMeta(event.metadata_json);
 
   const handleDelete = () => {
+    // Health data is often irreplaceable — gate destructive actions with a
+    // second confirmation, like the "Effacer toutes les données" flow.
     Alert.alert('Supprimer cet événement ?', 'Cette action est irréversible.', [
       { text: 'Annuler', style: 'cancel' },
       {
         text: 'Supprimer',
         style: 'destructive',
-        onPress: async () => {
-          await deleteEvent(eventId);
-          navigation.goBack();
+        onPress: () => {
+          Alert.alert(
+            'Confirmer la suppression',
+            'L\'événement et ses photos seront définitivement supprimés.',
+            [
+              { text: 'Annuler', style: 'cancel' },
+              {
+                text: 'Supprimer définitivement',
+                style: 'destructive',
+                onPress: async () => {
+                  await deleteEvent(eventId);
+                  navigation.goBack();
+                },
+              },
+            ],
+          );
         },
       },
     ]);
@@ -83,11 +94,23 @@ export default function EventDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Retour">
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
             <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
           {profile && (
-            <TouchableOpacity onPress={() => setEditModalVisible(true)} style={styles.editBtn} accessibilityRole="button" accessibilityLabel="Modifier l'événement">
+            <TouchableOpacity
+              onPress={() => setEditModalVisible(true)}
+              style={styles.editBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Modifier l'événement"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
               <Text style={styles.editBtnText}>✏️</Text>
             </TouchableOpacity>
           )}
@@ -211,7 +234,13 @@ export default function EventDetailScreen() {
           {lightboxUri && (
             <Image source={{ uri: lightboxUri }} style={styles.lightboxImage} resizeMode="contain" />
           )}
-          <TouchableOpacity onPress={() => setLightboxUri(null)} style={styles.lightboxClose}>
+          <TouchableOpacity
+            onPress={() => setLightboxUri(null)}
+            style={styles.lightboxClose}
+            accessibilityRole="button"
+            accessibilityLabel="Fermer la photo"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
             <Text style={styles.lightboxCloseText}>✕</Text>
           </TouchableOpacity>
         </View>

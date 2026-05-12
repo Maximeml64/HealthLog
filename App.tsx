@@ -29,9 +29,18 @@ function App() {
       await ensurePhotoDir();
       await loadAll();
       // RC init after app data is loaded so settings.premium is populated
-      // before syncWithAppStore reads it. Fire-and-forget — errors are
-      // handled internally in the store.
-      void usePremiumStore.getState().init();
+      // before syncWithAppStore reads it. The premium store's `init` is
+      // resilient internally (Expo Go + missing key + network errors all
+      // resolve normally), but we still log unexpected throws to Sentry
+      // so a premium user never silently loses entitlement on launch.
+      usePremiumStore
+        .getState()
+        .init()
+        .catch((rcError) => {
+          Sentry.captureException(rcError, {
+            tags: { context: 'premium_init' },
+          });
+        });
     } catch (e) {
       Sentry.captureException(e, {
         tags: { context: 'app_initialization' },
