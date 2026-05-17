@@ -164,7 +164,7 @@ export default function PrescriptionEditScreen() {
       Alert.alert('Permission refusée', "L'accès à la caméra est nécessaire.");
       return;
     }
-    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 });
     if (!result.canceled && result.assets.length > 0) {
       const saved = await PhotoService.savePhoto(result.assets[0].uri);
       updateForm({ image_uri: saved });
@@ -177,7 +177,7 @@ export default function PrescriptionEditScreen() {
       Alert.alert('Permission refusée', "L'accès à la galerie est nécessaire.");
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
     if (!result.canceled && result.assets.length > 0) {
       const saved = await PhotoService.savePhoto(result.assets[0].uri);
       updateForm({ image_uri: saved });

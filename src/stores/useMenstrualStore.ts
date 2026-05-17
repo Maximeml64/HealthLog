@@ -68,39 +68,6 @@ export async function clearMenstrualData(): Promise<void> {
   await AsyncStorage.multiRemove([KEYS.CYCLES, KEYS.PREGNANCIES]);
 }
 
-// ─── Public helper — exported for use in BLOC B (computations) ────────────────
-
-export function computeProfileAverages(
-  profileId: string,
-  cycles: MenstrualCycle[]
-): { avgCycle: number; avgPeriod: number } | null {
-  const completed = cycles
-    .filter((c) => c.profileId === profileId && c.endDate != null)
-    .sort((a, b) => a.startDate.localeCompare(b.startDate));
-
-  if (completed.length < 2) return null;
-
-  // Cycle length = days between consecutive start dates
-  const cycleLengths: number[] = [];
-  for (let i = 1; i < completed.length; i++) {
-    const ms =
-      new Date(completed[i].startDate).getTime() -
-      new Date(completed[i - 1].startDate).getTime();
-    cycleLengths.push(Math.round(ms / 86_400_000));
-  }
-
-  // Period length = start→end inclusive
-  const periodLengths = completed.map((c) => {
-    const ms = new Date(c.endDate!).getTime() - new Date(c.startDate).getTime();
-    return Math.round(ms / 86_400_000) + 1;
-  });
-
-  const avg = (arr: number[]) =>
-    Math.round(arr.reduce((s, v) => s + v, 0) / arr.length);
-
-  return { avgCycle: avg(cycleLengths), avgPeriod: avg(periodLengths) };
-}
-
 // ─── State interface ──────────────────────────────────────────────────────────
 
 interface MenstrualState {

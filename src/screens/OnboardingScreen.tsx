@@ -11,8 +11,10 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Check, FileText, ScrollText, Info } from 'lucide-react-native';
 import { useAppStore } from '../stores/useAppStore';
-import { Colors, Spacing, Radius } from '../utils/theme';
+import { Colors, Spacing, Radius, Typography } from '../utils/theme';
+import { PRIVACY_POLICY_URL, CGU_URL } from '../constants/urls';
 
 export default function OnboardingScreen() {
   const updateSettings = useAppStore((s) => s.updateSettings);
@@ -38,13 +40,14 @@ export default function OnboardingScreen() {
         {/* Titre */}
         <Text style={styles.title}>Bienvenue dans Healthlog</Text>
         <Text style={styles.subtitle}>
-          Outil d'organisation personnelle pour le suivi de santé familial
+          Le carnet de santé calme de toute la famille.
         </Text>
 
         {/* Disclaimer médical */}
         <View style={styles.disclaimer}>
+          <Info size={18} color={Colors.primary} strokeWidth={2} style={styles.disclaimerIcon} />
           <Text style={styles.disclaimerText}>
-            ⚠️ Healthlog est un outil d'organisation personnelle. Il ne fournit aucun diagnostic,
+            Healthlog est un outil d'organisation personnelle. Il ne fournit aucun diagnostic,
             ne remplace pas un avis médical, et ne doit pas être utilisé en situation d'urgence.
             En cas de doute sur votre santé ou celle d'un proche, consultez un professionnel de santé.
           </Text>
@@ -54,21 +57,23 @@ export default function OnboardingScreen() {
         <View style={styles.linksSection}>
           <TouchableOpacity
             style={styles.linkRow}
-            onPress={() => Linking.openURL('https://momentous-locket-2af.notion.site/Politique-de-Confidentialit-Healthlog-34f84071bf3e80af8320fb83f0d6ee11')}
+            onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
             accessibilityRole="link"
             accessibilityLabel="Lire la Politique de Confidentialité"
             accessibilityHint="Ouvre dans le navigateur"
           >
-            <Text style={styles.linkText}>📄 Lire la Politique de Confidentialité</Text>
+            <FileText size={18} color={Colors.primary} strokeWidth={2} />
+            <Text style={styles.linkText}>Politique de Confidentialité</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.linkRow}
-            onPress={() => Linking.openURL('https://momentous-locket-2af.notion.site/Conditions-G-n-rales-d-Utilisation-Healthlog-34f84071bf3e80b7811cf3a8f7ca5254')}
+            onPress={() => Linking.openURL(CGU_URL)}
             accessibilityRole="link"
             accessibilityLabel="Lire les Conditions Générales d'Utilisation"
             accessibilityHint="Ouvre dans le navigateur"
           >
-            <Text style={styles.linkText}>📋 Lire les Conditions Générales d'Utilisation</Text>
+            <ScrollText size={18} color={Colors.primary} strokeWidth={2} />
+            <Text style={styles.linkText}>Conditions Générales d'Utilisation</Text>
           </TouchableOpacity>
         </View>
 
@@ -82,10 +87,10 @@ export default function OnboardingScreen() {
           accessibilityLabel="J'accepte les CGU et la Politique de Confidentialité"
         >
           <View style={[styles.checkbox, accepted && styles.checkboxChecked]}>
-            {accepted && <Text style={styles.checkmark}>✓</Text>}
+            {accepted && <Check size={14} color={Colors.white} strokeWidth={3} />}
           </View>
           <Text style={styles.checkboxLabel}>
-            J'ai lu et j'accepte les Conditions Générales d'Utilisation et la Politique de Confidentialité
+            J'ai lu et j'accepte les Conditions Générales d'Utilisation et la Politique de Confidentialité.
           </Text>
         </TouchableOpacity>
 
@@ -111,24 +116,42 @@ const styles = StyleSheet.create({
   scroll: { padding: Spacing.xl, alignItems: 'center', paddingBottom: 60 },
 
   logoContainer: { marginBottom: Spacing.xl, marginTop: Spacing.lg },
-  logo: { width: 100, height: 100, borderRadius: 22 },
+  logo: { width: 96, height: 96, borderRadius: 22 },
 
-  title: { fontSize: 26, fontWeight: '800', color: Colors.text, textAlign: 'center', marginBottom: Spacing.sm },
-  subtitle: { fontSize: 15, color: Colors.textSecondary, textAlign: 'center', marginBottom: Spacing.xl, lineHeight: 22 },
+  title: {
+    ...Typography.h1,
+    fontSize: 26,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.xl,
+    lineHeight: 22,
+  },
 
   disclaimer: {
-    backgroundColor: Colors.accentLight,
+    flexDirection: 'row',
+    gap: Spacing.md,
+    backgroundColor: Colors.primaryLight,
     borderRadius: Radius.md,
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
     borderWidth: 1,
-    borderColor: Colors.accent + '44',
+    borderColor: Colors.primary + '20',
     width: '100%',
   },
-  disclaimerText: { fontSize: 13, color: Colors.text, lineHeight: 20 },
+  disclaimerIcon: { marginTop: 2 },
+  disclaimerText: { flex: 1, fontSize: 13, color: Colors.text, lineHeight: 20 },
 
   linksSection: { width: '100%', marginBottom: Spacing.xl, gap: Spacing.sm },
   linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
     backgroundColor: Colors.surface,
     borderRadius: Radius.md,
     padding: Spacing.md,
@@ -149,7 +172,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: Colors.borderStrong,
     backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -157,7 +180,6 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   checkboxChecked: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  checkmark: { color: Colors.white, fontSize: 13, fontWeight: '800' },
   checkboxLabel: { flex: 1, fontSize: 14, color: Colors.text, lineHeight: 20 },
 
   startBtn: {

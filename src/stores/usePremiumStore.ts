@@ -123,8 +123,9 @@ export const usePremiumStore = create<PremiumStore>((set) => ({
       const isPremium = isPremiumFromInfo(customerInfo);
       set({ customerInfo, isPremium });
       syncWithAppStore(isPremium);
-    } catch (e: any) {
-      if (e?.userCancelled) return; // silent — user backed out
+    } catch (e) {
+      // RC throws errors with a non-typed `userCancelled` boolean property.
+      if (e && typeof e === 'object' && 'userCancelled' in e && (e as { userCancelled?: boolean }).userCancelled) return;
       throw e;
     }
   },

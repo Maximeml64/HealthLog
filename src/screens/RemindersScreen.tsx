@@ -117,10 +117,11 @@ export default function RemindersScreen() {
     const reminder: Reminder = editReminder
       ? {
           ...editReminder,
-          title: form.title,
-          body: form.body,
+          title: form.title.trim(),
+          body: form.body.trim(),
           scheduled_at: scheduled.toISOString(),
           profile_id: form.profile_id,
+          is_recurring: isRecurring,
           recurrence,
         }
       : {
@@ -153,12 +154,15 @@ export default function RemindersScreen() {
     await upsertReminder({ ...r, active: !r.active });
   };
 
-  const upcoming = reminders.filter((r) => new Date(r.scheduled_at) > new Date()).sort(
-    (a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
-  );
-  const past = reminders.filter((r) => new Date(r.scheduled_at) <= new Date()).sort(
-    (a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()
-  );
+  // A recurring active reminder is always "upcoming" regardless of its initial
+  // scheduled_at — what matters is that future occurrences keep firing.
+  const now = new Date();
+  const upcoming = reminders
+    .filter((r) => (r.recurrence != null && r.active) || new Date(r.scheduled_at) > now)
+    .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+  const past = reminders
+    .filter((r) => r.recurrence == null && new Date(r.scheduled_at) <= now)
+    .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
 
   const getProfile = (id: string) => profiles.find((p) => p.id === id);
 

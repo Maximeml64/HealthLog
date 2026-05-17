@@ -9,10 +9,13 @@ import {
 } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 import {
   getCycleStats, getCurrentPhase, getDayOfCycle, getDaysUntilNextPeriod,
   getFertilityWindow, predictNextPeriod, type CyclePhase,
 } from '../utils/menstrualCalc';
+import { useToday } from '../utils/useToday';
 import { Colors, Radius, Shadow, Spacing, Typography } from '../utils/theme';
 import { Card, SectionHeader } from './UI';
 
@@ -51,7 +54,7 @@ interface TTCViewProps {
   profileId: string;
   calendarMonth: Date;
   setCalendarMonth: (m: Date | ((prev: Date) => Date)) => void;
-  navigation: any;
+  navigation: NativeStackNavigationProp<RootStackParamList>;
   recentCycles: import('../types').MenstrualCycle[];
   profileCycles: import('../types').MenstrualCycle[];
 }
@@ -61,7 +64,7 @@ interface TTCViewProps {
 export const TTCView: React.FC<TTCViewProps> = ({
   profileId, calendarMonth, setCalendarMonth, navigation, recentCycles, profileCycles,
 }) => {
-  const today = useMemo(() => new Date(), []);
+  const today = useToday();
   const stats = useMemo(() => getCycleStats(profileCycles), [profileCycles]);
   const phase = getCurrentPhase(profileCycles, today);
   const dayOfCycle = getDayOfCycle(profileCycles, today);

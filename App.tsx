@@ -2,13 +2,26 @@
 import * as Sentry from '@sentry/react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, ActivityIndicator, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
+import { AlertTriangle } from 'lucide-react-native';
 import { useAppStore } from './src/stores/useAppStore';
 import { usePremiumStore } from './src/stores/usePremiumStore';
 import RootNavigator from './src/navigation/RootNavigator';
 import { ensurePhotoDir } from './src/services/PhotoService';
 import { Colors, Spacing } from './src/utils/theme';
+
+const NavTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: Colors.background,
+    card: Colors.surface,
+    border: Colors.border,
+    text: Colors.text,
+    primary: Colors.primary,
+  },
+};
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
@@ -62,7 +75,8 @@ function App() {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorText}>⚠️ {error}</Text>
+        <AlertTriangle size={32} color={Colors.warning} strokeWidth={2} style={{ marginBottom: Spacing.md }} />
+        <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryBtn} onPress={init}>
           <Text style={styles.retryText}>Réessayer</Text>
         </TouchableOpacity>
@@ -71,7 +85,7 @@ function App() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={NavTheme}>
       <StatusBar style="dark" />
       <RootNavigator />
     </NavigationContainer>

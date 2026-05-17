@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, TextInput } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { subDays, subMonths, parseISO, format } from 'date-fns';
@@ -14,6 +14,7 @@ import {
   getCycleStats, getCurrentPhase, getPregnancyWeek, getPregnancyTrimester, type CyclePhase,
 } from '../utils/menstrualCalc';
 import { Colors, Typography, Spacing, Radius } from '../utils/theme';
+import { useToday } from '../utils/useToday';
 import { Card, Avatar, Button, EmptyState, Badge } from '../components/UI';
 import { EventCard } from '../components/EventCard';
 import { AddEventModal } from '../components/AddEventModal';
@@ -22,7 +23,7 @@ import { generateMedicalPdf } from '../services/PdfExportService';
 import { TemperatureChart } from '../components/TemperatureChart';
 import { RELATION_TYPE_LABELS, EVENT_TYPE_ICONS, EventType, Sex } from '../types';
 import { formatAge } from '../utils/helpers';
-import { safeParseMeta } from '../utils/safeParse';
+import { useEventSearch } from '../utils/useEventSearch';
 
 const SEX_LABELS: Record<Sex, string> = {
   female: 'Femme',
@@ -56,7 +57,7 @@ const PERIODS: { key: PeriodKey; label: string; a11yLabel: string }[] = [
 ];
 
 export default function ProfileDetailScreen() {
-  const route = useRoute<any>();
+  const route = useRoute<RouteProp<RootStackParamList, 'ProfileDetail'>>();
   const navigation = useNavigation<Nav>();
   const { profileId } = route.params;
   const { profiles, events, upsertEvent } = useAppStore();
@@ -71,7 +72,7 @@ export default function ProfileDetailScreen() {
   const { cycles, loadMenstrualData, getActivePregnancy } = useMenstrualStore();
   useEffect(() => { loadMenstrualData(); }, [loadMenstrualData]);
   const profileCycles = useMemo(() => cycles.filter((c) => c.profileId === profileId), [cycles, profileId]);
-  const today = useMemo(() => new Date(), []);
+  const today = useToday();
 
   const getPeriodStart = (key: PeriodKey): Date => {
     const now = new Date();
@@ -95,19 +96,7 @@ export default function ProfileDetailScreen() {
     return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 3);
   }, [filteredEvents]);
 
-  const searchedEvents = useMemo(() => {
-    if (!searchQuery.trim()) return filteredEvents;
-    const q = searchQuery.toLowerCase();
-    return filteredEvents.filter((e) => {
-      if (e.title.toLowerCase().includes(q)) return true;
-      if (e.note.toLowerCase().includes(q)) return true;
-      const meta = safeParseMeta<Record<string, string>>(e.metadata_json);
-      if (meta) {
-        return Object.values(meta).some((v) => String(v).toLowerCase().includes(q));
-      }
-      return false;
-    });
-  }, [filteredEvents, searchQuery]);
+  const searchedEvents = useEventSearch(filteredEvents, searchQuery);
 
   const summary = useMemo(() => {
     if (!showSummary || !profile) return null;

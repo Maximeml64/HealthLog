@@ -27,7 +27,7 @@ interface EventFormProps {
   eventType: EventType;
   initialValues: HealthEvent | null;
   onSave: (event: HealthEvent) => void;
-  onCancel: () => void;
+  onCancel?: () => void;
   /**
    * When true (typical for the "new event" flow), the form persists its
    * current state as a draft on every change so an accidental modal close
@@ -121,6 +121,19 @@ export const EventForm: React.FC<EventFormProps> = ({
       Alert.alert('Titre requis', "Merci d'ajouter un titre court.");
       return;
     }
+
+    // Parse defensively: garbage like "abc" or "3,4,5" should NOT persist NaN,
+    // which propagates silently into Math.min/max and chart rendering.
+    let parsedNumeric: number | null = null;
+    if (numericValue.trim()) {
+      const v = parseFloat(numericValue.replace(',', '.'));
+      if (!Number.isFinite(v)) {
+        Alert.alert('Valeur invalide', 'Merci de saisir un nombre valide.');
+        return;
+      }
+      parsedNumeric = v;
+    }
+
     const now = new Date().toISOString();
     const event: HealthEvent = initialValues
       ? {
@@ -128,7 +141,7 @@ export const EventForm: React.FC<EventFormProps> = ({
           title: title.trim(),
           occurred_at: occurredAt,
           note: note.trim(),
-          numeric_value: numericValue ? parseFloat(numericValue.replace(',', '.')) : null,
+          numeric_value: parsedNumeric,
           intensity,
           metadata_json: Object.keys(meta).length > 0 ? JSON.stringify(meta) : null,
           photos,
@@ -141,7 +154,7 @@ export const EventForm: React.FC<EventFormProps> = ({
           title: title.trim(),
           occurred_at: occurredAt,
           note: note.trim(),
-          numeric_value: numericValue ? parseFloat(numericValue.replace(',', '.')) : null,
+          numeric_value: parsedNumeric,
           unit: getDefaultUnit(eventType),
           intensity,
           subtype: null,

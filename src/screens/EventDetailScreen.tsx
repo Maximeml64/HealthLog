@@ -12,7 +12,9 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, type RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useAppStore } from '../stores/useAppStore';
 import {
   EVENT_TYPE_ICONS,
@@ -27,8 +29,8 @@ import { formatDate } from '../utils/helpers';
 import { safeParseMeta } from '../utils/safeParse';
 
 export default function EventDetailScreen() {
-  const route = useRoute<any>();
-  const navigation = useNavigation<any>();
+  const route = useRoute<RouteProp<RootStackParamList, 'EventDetail'>>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { eventId } = route.params;
   const { events, profiles, deleteEvent, upsertEvent } = useAppStore();
 

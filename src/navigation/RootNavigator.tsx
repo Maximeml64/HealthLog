@@ -3,8 +3,15 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { NavigatorScreenParams } from '@react-navigation/native';
-import { Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  Home as HomeIcon,
+  Users as UsersIcon,
+  Clock as ClockIcon,
+  Bell as BellIcon,
+  Pill as PillIcon,
+  Settings as SettingsIcon,
+} from 'lucide-react-native';
 import { Colors } from '../utils/theme';
 
 import { useAppStore } from '../stores/useAppStore';
@@ -29,7 +36,6 @@ export type RootStackParamList = {
   Tabs: NavigatorScreenParams<TabParamList> | undefined;
   EventDetail: { eventId: string };
   ProfileDetail: { profileId: string };
-  PrescriptionsList: undefined;
   PrescriptionDetail: { id: string };
   PrescriptionEdit: { prescriptionId?: string };
   Paywall: undefined;
@@ -56,6 +62,8 @@ export type TabParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
+const TAB_ICON_SIZE = 22;
+
 function TabNavigator() {
   const { bottom } = useSafeAreaInsets();
   return (
@@ -66,42 +74,79 @@ function TabNavigator() {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
           paddingBottom: bottom,
+          paddingTop: 6,
           height: 60 + bottom,
         },
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textMuted,
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600', letterSpacing: 0.1, marginTop: 2 },
       }}
     >
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{ tabBarLabel: 'Accueil', tabBarAccessibilityLabel: 'Onglet Accueil', tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>🏠</Text> }}
+        options={{
+          tabBarLabel: 'Accueil',
+          tabBarAccessibilityLabel: 'Onglet Accueil',
+          tabBarIcon: ({ color, focused }) => (
+            <HomeIcon size={TAB_ICON_SIZE} color={color} strokeWidth={focused ? 2.4 : 1.8} />
+          ),
+        }}
       />
       <Tab.Screen
         name="Profiles"
         component={ProfilesScreen}
-        options={{ tabBarLabel: 'Profils', tabBarAccessibilityLabel: 'Onglet Profils', tabBarIcon: () => <Text style={{ fontSize: 20 }}>👨‍👩‍👧</Text> }}
+        options={{
+          tabBarLabel: 'Profils',
+          tabBarAccessibilityLabel: 'Onglet Profils',
+          tabBarIcon: ({ color, focused }) => (
+            <UsersIcon size={TAB_ICON_SIZE} color={color} strokeWidth={focused ? 2.4 : 1.8} />
+          ),
+        }}
       />
       <Tab.Screen
         name="History"
         component={HistoryScreen}
-        options={{ tabBarLabel: 'Historique', tabBarAccessibilityLabel: 'Onglet Historique', tabBarIcon: () => <Text style={{ fontSize: 20 }}>📋</Text> }}
+        options={{
+          tabBarLabel: 'Historique',
+          tabBarAccessibilityLabel: 'Onglet Historique',
+          tabBarIcon: ({ color, focused }) => (
+            <ClockIcon size={TAB_ICON_SIZE} color={color} strokeWidth={focused ? 2.4 : 1.8} />
+          ),
+        }}
       />
       <Tab.Screen
         name="Reminders"
         component={RemindersScreen}
-        options={{ tabBarLabel: 'Rappels', tabBarAccessibilityLabel: 'Onglet Rappels', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🔔</Text> }}
+        options={{
+          tabBarLabel: 'Rappels',
+          tabBarAccessibilityLabel: 'Onglet Rappels',
+          tabBarIcon: ({ color, focused }) => (
+            <BellIcon size={TAB_ICON_SIZE} color={color} strokeWidth={focused ? 2.4 : 1.8} />
+          ),
+        }}
       />
       <Tab.Screen
         name="Prescriptions"
         component={PrescriptionsListScreen}
-        options={{ tabBarLabel: 'Ordonnances', tabBarAccessibilityLabel: 'Onglet Ordonnances', tabBarIcon: () => <Text style={{ fontSize: 20 }}>💊</Text> }}
+        options={{
+          tabBarLabel: 'Ordonnances',
+          tabBarAccessibilityLabel: 'Onglet Ordonnances',
+          tabBarIcon: ({ color, focused }) => (
+            <PillIcon size={TAB_ICON_SIZE} color={color} strokeWidth={focused ? 2.4 : 1.8} />
+          ),
+        }}
       />
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}
-        options={{ tabBarLabel: 'Réglages', tabBarAccessibilityLabel: 'Onglet Réglages', tabBarIcon: () => <Text style={{ fontSize: 20 }}>⚙️</Text> }}
+        options={{
+          tabBarLabel: 'Réglages',
+          tabBarAccessibilityLabel: 'Onglet Réglages',
+          tabBarIcon: ({ color, focused }) => (
+            <SettingsIcon size={TAB_ICON_SIZE} color={color} strokeWidth={focused ? 2.4 : 1.8} />
+          ),
+        }}
       />
     </Tab.Navigator>
   );
@@ -115,7 +160,7 @@ export default function RootNavigator() {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.background } }}>
       <Stack.Screen name="Tabs" component={TabNavigator} />
       <Stack.Screen
         name="EventDetail"

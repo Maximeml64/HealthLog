@@ -14,7 +14,7 @@ import { EventCard } from '../components/EventCard';
 import { FAB } from '../components/FAB';
 import { AddEventModal } from '../components/AddEventModal';
 import { formatDateHeader } from '../utils/helpers';
-import { safeParseMeta } from '../utils/safeParse';
+import { useEventSearch } from '../utils/useEventSearch';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -50,39 +50,24 @@ export default function HistoryScreen() {
 
   const activeProfiles = useMemo(() => profiles.filter((p) => !p.archived), [profiles]);
 
-  // Filters are composable: profile AND type AND date range AND search query.
-  // Search now also matches event.metadata (medication name, practitioner,
-  // location, method, dosage, …) — previously it only looked at title/note.
-  const filteredEvents = useMemo(() => {
+  // Composable filters: profile AND type AND date range (search is applied
+  // separately via the useEventSearch hook below for code reuse).
+  const prefiltered = useMemo(() => {
     const rangeStart = dateRange === 'all'
       ? null
       : startOfDay(subDays(new Date(), dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90));
 
-    const q = searchQuery.trim().toLowerCase();
-
     let result = events;
     if (selectedProfile) result = result.filter((e) => e.profile_id === selectedProfile);
     if (selectedType) result = result.filter((e) => e.event_type === selectedType);
-    if (rangeStart) {
-      result = result.filter((e) => parseISO(e.occurred_at) >= rangeStart);
-    }
-    if (q) {
-      result = result.filter((e) => {
-        if (e.title.toLowerCase().includes(q)) return true;
-        if (e.note.toLowerCase().includes(q)) return true;
-        const meta = safeParseMeta<Record<string, string>>(e.metadata_json);
-        if (meta) {
-          return Object.values(meta).some((v) =>
-            typeof v === 'string' && v.toLowerCase().includes(q),
-          );
-        }
-        return false;
-      });
-    }
+    if (rangeStart) result = result.filter((e) => parseISO(e.occurred_at) >= rangeStart);
+
     return result.sort(
       (a, b) => parseISO(b.occurred_at).getTime() - parseISO(a.occurred_at).getTime(),
     );
-  }, [events, selectedProfile, selectedType, dateRange, searchQuery]);
+  }, [events, selectedProfile, selectedType, dateRange]);
+
+  const filteredEvents = useEventSearch(prefiltered, searchQuery);
 
   const sections = useMemo<DaySection[]>(() => {
     const map = new Map<string, HealthEvent[]>();
@@ -138,7 +123,7 @@ export default function HistoryScreen() {
       {showFilters && (
         <View style={styles.filtersPanel}>
           <Text style={styles.filterLabel}>Période</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 4 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
             {DATE_RANGES.map((r) => (
               <TouchableOpacity
                 key={r}
@@ -154,7 +139,7 @@ export default function HistoryScreen() {
           </ScrollView>
 
           <Text style={[styles.filterLabel, { marginTop: 8 }]}>Membre</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 4 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
             <TouchableOpacity onPress={() => setSelectedProfile(null)} style={[styles.filterChip, !selectedProfile && styles.filterChipActive]} accessibilityRole="button" accessibilityLabel="Tous les membres" accessibilityState={{ selected: !selectedProfile }}>
               <Text style={[styles.filterChipText, !selectedProfile && styles.filterChipTextActive]}>Tous</Text>
             </TouchableOpacity>
@@ -173,7 +158,7 @@ export default function HistoryScreen() {
           </ScrollView>
 
           <Text style={[styles.filterLabel, { marginTop: 8 }]}>Type</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 4 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
             <TouchableOpacity onPress={() => setSelectedType(null)} style={[styles.filterChip, !selectedType && styles.filterChipActive]} accessibilityRole="button" accessibilityLabel="Tous les types" accessibilityState={{ selected: !selectedType }}>
               <Text style={[styles.filterChipText, !selectedType && styles.filterChipTextActive]}>Tous</Text>
             </TouchableOpacity>
@@ -265,6 +250,7 @@ const styles = StyleSheet.create({
   searchRow: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.border },
   searchInput: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.full, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, fontSize: 14, color: Colors.text },
   filtersPanel: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.surfaceAlt },
+  filterChipRow: { gap: 6, paddingVertical: 4 },
   filterLabel: { fontSize: 11, fontWeight: '700', color: Colors.textMuted, letterSpacing: 0.5, marginBottom: 4 },
   filterChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface },
   filterChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },

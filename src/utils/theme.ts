@@ -1,75 +1,82 @@
 // src/utils/theme.ts
+// Design tokens — "Calm Medical": sage green primary, terra rosé accent,
+// cream background. Distinct from the bleu-marine + coral seas of other
+// health apps; aims for a clinical-but-warm tone.
 
 export const Colors = {
-  // ── Backgrounds ──────────────────────────────────────────────────────────
-  background: '#FFFFFF',
-  backgroundSecondary: '#F8FAFC',
+  // ── Backgrounds ─────────────────────────────────────────────────────────
+  // Cream-tinted white feels less clinical than #FFFFFF without being beige.
+  background: '#FBF8F3',
+  backgroundSecondary: '#F4EFE7',
   surface: '#FFFFFF',
-  surfaceAlt: '#F0F9FF',
+  surfaceAlt: '#F4EFE7',
 
-  // ── Borders ───────────────────────────────────────────────────────────────
-  border: '#E2E8F0',
-  borderStrong: '#CBD5E1',
+  // ── Borders ──────────────────────────────────────────────────────────────
+  border: '#E8E2D5',
+  borderStrong: '#D4CCBC',
 
-  // ── Text ──────────────────────────────────────────────────────────────────
-  text: '#0F172A',
-  textSecondary: '#64748B',
-  textMuted: '#94A3B8',
+  // ── Text ─────────────────────────────────────────────────────────────────
+  text: '#1A2421',          // gris-vert très sombre, pas un noir froid
+  textSecondary: '#5E6A66',
+  textMuted: '#9CA59F',
 
-  // ── Primary — bleu marine (blue-900) ─────────────────────────────────────
-  primary: '#1E3A8A',
-  primaryLight: '#1E3A8A',
-  primaryDark: '#172554',
-  primaryMuted: '#1E3A8A14',
+  // ── Primary — sauge profond, calme et distinctif ────────────────────────
+  primary: '#3A6E5F',
+  primaryLight: '#E8EFEB',  // 8% tint sur cream
+  primaryDark: '#2A5045',
+  primaryMuted: '#3A6E5F1A',
 
-  // ── Accent — alias primary (bleu marine, clés conservées pour compatibilité)
-  accent: '#1E3A8A',
-  accentLight: '#1E3A8A',
-  accentDark: '#172554',
-  accentMuted: '#1E3A8A14',
+  // ── Accent — terra rosé pour les CTA chauds ─────────────────────────────
+  accent: '#C97A6A',
+  accentLight: '#F4E4DF',
+  accentDark: '#A35E50',
+  accentMuted: '#C97A6A1A',
 
-  // ── Status ────────────────────────────────────────────────────────────────
-  success: '#10B981',
-  successLight: '#D1FAE5',
-  warning: '#F59E0B',
-  warningLight: '#FEF3C7',
-  error: '#EF4444',
-  danger: '#EF4444',
-  info: '#0EA5E9',
-  infoLight: '#F0F9FF',
+  // ── Status — versions "calm" : pas de rouge alarme hôpital ─────────────
+  success: '#5B8A72',
+  successLight: '#E0EBE5',
+  warning: '#D08545',
+  warningLight: '#F8EAD8',
+  error: '#B5544A',
+  danger: '#B5544A',
+  info: '#5C7A99',
+  infoLight: '#E4EAF1',
 
-  // ── Utilities ─────────────────────────────────────────────────────────────
+  // ── Utilities ────────────────────────────────────────────────────────────
   white: '#FFFFFF',
-  black: '#000000',
-  overlay: 'rgba(0,0,0,0.5)',
-  cardShadow: 'rgba(15, 23, 42, 0.08)',
+  black: '#1A2421',
+  overlay: 'rgba(26, 36, 33, 0.55)',
+  cardShadow: 'rgba(26, 36, 33, 0.06)',
 } as const;
 
 export const Typography = {
   display: {
-    fontFamily: undefined,
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '700' as const,
-    lineHeight: 34,
+    lineHeight: 36,
     color: Colors.text,
+    letterSpacing: -0.4,
   },
   h1: {
     fontSize: 24,
     fontWeight: '700' as const,
     lineHeight: 30,
     color: Colors.text,
+    letterSpacing: -0.3,
   },
   h2: {
     fontSize: 20,
     fontWeight: '600' as const,
     lineHeight: 26,
     color: Colors.text,
+    letterSpacing: -0.2,
   },
   h3: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600' as const,
     lineHeight: 22,
     color: Colors.text,
+    letterSpacing: -0.1,
   },
   body: {
     fontSize: 15,
@@ -91,11 +98,11 @@ export const Typography = {
     letterSpacing: 0.3,
   },
   label: {
-    fontSize: 12,
-    fontWeight: '600' as const,
+    fontSize: 11,
+    fontWeight: '700' as const,
     lineHeight: 16,
     color: Colors.textSecondary,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     textTransform: 'uppercase' as const,
   },
 };
@@ -112,39 +119,40 @@ export const Spacing = {
 
 export const Radius = {
   sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
+  md: 14,
+  lg: 20,
+  xl: 28,
   full: 999,
 };
 
+// Shadows kept subtle on purpose: a calm interface doesn't shout for attention.
 export const Shadow = {
   sm: {
-    shadowColor: '#0F172A',
+    shadowColor: '#1A2421',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
   },
   md: {
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowColor: '#1A2421',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
   },
   lg: {
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.10,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  primary: {
-    shadowColor: '#1E3A8A',
+    shadowColor: '#1A2421',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 6,
+  },
+  primary: {
+    shadowColor: '#3A6E5F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 5,
   },
 };

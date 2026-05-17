@@ -16,11 +16,9 @@ import { useNavigation } from '@react-navigation/native';
 import { PurchasesPackage } from 'react-native-purchases';
 import { usePremiumStore } from '../stores/usePremiumStore';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../utils/theme';
+import { PRIVACY_POLICY_URL, CGU_URL } from '../constants/urls';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const PRIVACY_POLICY_URL = 'https://momentous-locket-2af.notion.site/Politique-de-Confidentialit-Healthlog-34f84071bf3e80af8320fb83f0d6ee11';
-const CGU_URL = 'https://momentous-locket-2af.notion.site/Conditions-G-n-rales-d-Utilisation-Healthlog-34f84071bf3e80b7811cf3a8f7ca5254';
 
 const FEATURES = [
   { icon: '👨‍👩‍👧', label: 'Profils familiaux illimités' },
@@ -71,8 +69,9 @@ export default function PaywallScreen() {
     try {
       await purchasePackage(selectedPkg);
       navigation.goBack();
-    } catch (e: any) {
-      Alert.alert('Erreur', e?.message ?? "L'achat a échoué. Réessayez.");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "L'achat a échoué. Réessayez.";
+      Alert.alert('Erreur', message);
     } finally {
       setPurchasing(false);
     }
