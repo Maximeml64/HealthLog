@@ -25,6 +25,8 @@ import { LIMITS } from '../constants/limits';
 import { COMMON_SYMPTOMS } from '../constants/symptomCatalog';
 import { COMMON_MOODS } from '../constants/moodCatalog';
 import { COMMON_SLEEP } from '../constants/sleepCatalog';
+import { COMMON_DIGESTION } from '../constants/digestionCatalog';
+import { COMMON_APPETITE } from '../constants/appetiteCatalog';
 import { QuickPickChips, type ChipOption } from './QuickPickChips';
 import { haptic } from '../utils/haptics';
 
@@ -67,9 +69,11 @@ const HAS_INTENSITY: EventType[] = ['symptom', 'mood', 'appetite', 'sleep', 'dig
 // Event types that benefit from a quick-pick chip catalogue above the
 // title field. Each entry yields the chip label + the catalogue itself.
 const QUICK_PICK_CATALOG: Partial<Record<EventType, { label: string; options: ChipOption[] }>> = {
-  symptom: { label: 'Symptôme courant', options: COMMON_SYMPTOMS },
-  mood:    { label: 'Humeur du moment', options: COMMON_MOODS },
-  sleep:   { label: 'Type de nuit',     options: COMMON_SLEEP },
+  symptom:   { label: 'Symptôme courant', options: COMMON_SYMPTOMS },
+  mood:      { label: 'Humeur du moment', options: COMMON_MOODS },
+  sleep:     { label: 'Type de nuit',     options: COMMON_SLEEP },
+  digestion: { label: 'État digestif',    options: COMMON_DIGESTION },
+  appetite:  { label: 'Niveau d\'appétit', options: COMMON_APPETITE },
 };
 
 export const EventForm: React.FC<EventFormProps> = ({
