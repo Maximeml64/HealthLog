@@ -1,6 +1,6 @@
 // src/screens/HistoryScreen.tsx
 import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView, SectionList, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, ScrollView, SectionList, StyleSheet, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -39,6 +39,7 @@ export default function HistoryScreen() {
   const profiles = useAppStore((s) => s.profiles);
   const events = useAppStore((s) => s.events);
   const upsertEvent = useAppStore((s) => s.upsertEvent);
+  const loadAll = useAppStore((s) => s.loadAll);
 
   const navigation = useNavigation<Nav>();
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -47,6 +48,12 @@ export default function HistoryScreen() {
   const [selectedType, setSelectedType] = useState<EventType | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try { await loadAll(); } finally { setRefreshing(false); }
+  };
 
   const activeProfiles = useMemo(() => profiles.filter((p) => !p.archived), [profiles]);
 
@@ -216,6 +223,9 @@ export default function HistoryScreen() {
           windowSize={10}
           initialNumToRender={20}
           maxToRenderPerBatch={20}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+          }
           renderSectionHeader={({ section }) => (
             <View style={styles.dayHeader}>
               <Text style={styles.dayLabel}>{section.title}</Text>

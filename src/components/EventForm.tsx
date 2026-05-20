@@ -17,10 +17,12 @@ import { Button, Avatar, IntensityPicker } from './UI';
 import { DateTimeField } from './DateTimeField';
 import { generateId } from '../utils/helpers';
 import { PhotoPicker } from './PhotoPicker';
+import { CharCounter } from './CharCounter';
 import { safeParseMeta } from '../utils/safeParse';
 import * as DraftService from '../services/DraftService';
 import type { EventDraft } from '../services/DraftService';
 import { LIMITS } from '../constants/limits';
+import { haptic } from '../utils/haptics';
 
 interface EventFormProps {
   profile: Profile;
@@ -118,6 +120,7 @@ export const EventForm: React.FC<EventFormProps> = ({
 
   const handleSave = () => {
     if (!title.trim()) {
+      haptic.error();
       Alert.alert('Titre requis', "Merci d'ajouter un titre court.");
       return;
     }
@@ -128,6 +131,7 @@ export const EventForm: React.FC<EventFormProps> = ({
     if (numericValue.trim()) {
       const v = parseFloat(numericValue.replace(',', '.'));
       if (!Number.isFinite(v)) {
+        haptic.error();
         Alert.alert('Valeur invalide', 'Merci de saisir un nombre valide.');
         return;
       }
@@ -165,6 +169,7 @@ export const EventForm: React.FC<EventFormProps> = ({
           updated_at: now,
         };
 
+    haptic.success();
     onSave(event);
     if (enableDraft) {
       void DraftService.clearDraft();
@@ -207,6 +212,9 @@ export const EventForm: React.FC<EventFormProps> = ({
           onChangeText={setTitle}
           placeholder={EVENT_TYPE_LABELS[eventType]}
           placeholderTextColor={Colors.textMuted}
+          returnKeyType="next"
+          autoCapitalize="sentences"
+          maxLength={120}
         />
       </View>
 
@@ -258,6 +266,9 @@ export const EventForm: React.FC<EventFormProps> = ({
               onChangeText={(v) => setMeta({ ...meta, medication_name: v })}
               placeholder="Doliprane, Advil…"
               placeholderTextColor={Colors.textMuted}
+              returnKeyType="next"
+              autoCapitalize="words"
+              maxLength={80}
             />
           </View>
           <View style={styles.field}>
@@ -268,6 +279,9 @@ export const EventForm: React.FC<EventFormProps> = ({
               onChangeText={(v) => setMeta({ ...meta, dosage_text: v })}
               placeholder="500mg, 1 comprimé…"
               placeholderTextColor={Colors.textMuted}
+              returnKeyType="next"
+              autoCapitalize="none"
+              maxLength={80}
             />
           </View>
         </>
@@ -284,6 +298,9 @@ export const EventForm: React.FC<EventFormProps> = ({
               onChangeText={(v) => setMeta({ ...meta, practitioner: v })}
               placeholder="Dr Martin, Dentiste…"
               placeholderTextColor={Colors.textMuted}
+              returnKeyType="next"
+              autoCapitalize="words"
+              maxLength={80}
             />
           </View>
           <View style={styles.field}>
@@ -294,6 +311,9 @@ export const EventForm: React.FC<EventFormProps> = ({
               onChangeText={(v) => setMeta({ ...meta, location: v })}
               placeholder="Adresse, cabinet…"
               placeholderTextColor={Colors.textMuted}
+              returnKeyType="next"
+              autoCapitalize="words"
+              maxLength={120}
             />
           </View>
         </>
@@ -320,7 +340,10 @@ export const EventForm: React.FC<EventFormProps> = ({
           numberOfLines={3}
           scrollEnabled={false}
           textAlignVertical="top"
+          autoCapitalize="sentences"
+          maxLength={LIMITS.MAX_NOTE_CHARS}
         />
+        <CharCounter value={note} />
       </View>
 
       {/* Photos */}

@@ -57,6 +57,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   default_profile_id: null,
   notifications_enabled: true,
   legal_accepted: false,
+  app_lock_enabled: false,
 };
 
 /**

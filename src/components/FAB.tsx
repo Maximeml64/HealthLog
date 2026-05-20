@@ -4,6 +4,7 @@ import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { Plus } from 'lucide-react-native';
 import { Colors, Shadow } from '../utils/theme';
+import { haptic } from '../utils/haptics';
 
 interface FABProps {
   onPress: () => void;
@@ -18,10 +19,15 @@ export const FAB: React.FC<FABProps> = ({
   accessibilityLabel = 'Ajouter un événement de santé',
   accessibilityHint = "Ouvre le formulaire de création d'un nouvel événement",
 }) => {
+  const handlePress = () => {
+    haptic.tap();
+    onPress();
+  };
+
   return (
     <TouchableOpacity
       style={styles.fab}
-      onPress={onPress}
+      onPress={handlePress}
       activeOpacity={0.85}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}

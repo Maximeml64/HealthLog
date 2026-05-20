@@ -18,7 +18,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
-import { Bell, Download, Upload, Trash2, Info, ScrollText, Lock, Sparkles, ChevronRight, type LucideIcon } from 'lucide-react-native';
+import * as LocalAuthentication from 'expo-local-authentication';
+import { Bell, Download, Upload, Trash2, Info, ScrollText, Lock, ShieldCheck, Sparkles, ChevronRight, type LucideIcon } from 'lucide-react-native';
 import { useAppStore } from '../stores/useAppStore';
 import { useMenstrualStore } from '../stores/useMenstrualStore';
 import { usePremiumStore } from '../stores/usePremiumStore';
@@ -114,6 +115,26 @@ export default function SettingsScreen() {
         { text: 'Annuler', style: 'cancel' },
       ]
     );
+  };
+
+  const handleToggleAppLock = async (next: boolean) => {
+    if (!next) {
+      // Disabling never requires re-auth — user already passed the gate this session.
+      await updateSettings({ app_lock_enabled: false });
+      return;
+    }
+    // Enabling: verify the device has biometrics enrolled BEFORE flipping
+    // the flag, otherwise the user could lock themselves out on next launch.
+    const hasHw = await LocalAuthentication.hasHardwareAsync();
+    const enrolled = await LocalAuthentication.isEnrolledAsync();
+    if (!hasHw || !enrolled) {
+      Alert.alert(
+        'Authentification non disponible',
+        "Configure Face ID, Touch ID ou un code dans les Réglages iOS avant d'activer le verrouillage."
+      );
+      return;
+    }
+    await updateSettings({ app_lock_enabled: true });
   };
 
   const handleClearData = () => {
@@ -227,6 +248,26 @@ export default function SettingsScreen() {
                   onValueChange={(v) => updateSettings({ notifications_enabled: v })}
                   trackColor={{ false: Colors.border, true: Colors.primary + '80' }}
                   thumbColor={settings.notifications_enabled ? Colors.primary : Colors.textMuted}
+                />
+              }
+            />
+          </Card>
+        </View>
+
+        {/* Sécurité */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>SÉCURITÉ</Text>
+          <Card padding={0}>
+            <SettingRow
+              icon={ShieldCheck}
+              label="Verrouillage Face ID"
+              sublabel="Demander Face ID à l'ouverture de l'app"
+              right={
+                <Switch
+                  value={settings.app_lock_enabled}
+                  onValueChange={handleToggleAppLock}
+                  trackColor={{ false: Colors.border, true: Colors.primary + '80' }}
+                  thumbColor={settings.app_lock_enabled ? Colors.primary : Colors.textMuted}
                 />
               }
             />

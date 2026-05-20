@@ -10,8 +10,11 @@ import { useAppStore } from '../stores/useAppStore';
 import { Profile, RelationType, BloodType, Sex, MenstrualMode, PROFILE_COLORS, BLOOD_TYPES, RELATION_TYPE_LABELS } from '../types';
 import { Colors, Typography, Spacing, Radius } from '../utils/theme';
 import { Card, Avatar, Button, EmptyState, Badge } from '../components/UI';
+import { CharCounter } from '../components/CharCounter';
 import { generateId, formatAge } from '../utils/helpers';
 import { DateTimeField } from '../components/DateTimeField';
+import { haptic } from '../utils/haptics';
+import { LIMITS } from '../constants/limits';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -62,7 +65,14 @@ export default function ProfilesScreen() {
     const count = events.filter((e) => e.profile_id === p.id).length;
     Alert.alert('Supprimer ce profil ?',
       count > 0 ? `${count} événement(s) seront également supprimés.` : 'Action irréversible.',
-      [{ text: 'Annuler', style: 'cancel' }, { text: 'Supprimer', style: 'destructive', onPress: () => deleteProfile(p.id) }]
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () => { haptic.warning(); void deleteProfile(p.id); },
+        },
+      ]
     );
   };
 
@@ -151,7 +161,16 @@ export default function ProfilesScreen() {
           >
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>NOM</Text>
-              <TextInput style={styles.input} value={form.display_name} onChangeText={(v) => setForm({ ...form, display_name: v })} placeholder="Prénom ou surnom" placeholderTextColor={Colors.textMuted} returnKeyType="next" />
+              <TextInput
+                style={styles.input}
+                value={form.display_name}
+                onChangeText={(v) => setForm({ ...form, display_name: v })}
+                placeholder="Prénom ou surnom"
+                placeholderTextColor={Colors.textMuted}
+                returnKeyType="next"
+                autoCapitalize="words"
+                maxLength={60}
+              />
             </View>
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>LIEN FAMILIAL</Text>
@@ -194,7 +213,20 @@ export default function ProfilesScreen() {
             />
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>NOTES</Text>
-              <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} value={form.notes} onChangeText={(v) => setForm({ ...form, notes: v })} placeholder="Informations utiles…" placeholderTextColor={Colors.textMuted} multiline returnKeyType="done" scrollEnabled={false} textAlignVertical="top" />
+              <TextInput
+                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                value={form.notes}
+                onChangeText={(v) => setForm({ ...form, notes: v })}
+                placeholder="Informations utiles…"
+                placeholderTextColor={Colors.textMuted}
+                multiline
+                returnKeyType="done"
+                scrollEnabled={false}
+                textAlignVertical="top"
+                autoCapitalize="sentences"
+                maxLength={LIMITS.MAX_NOTE_CHARS}
+              />
+              <CharCounter value={form.notes} />
             </View>
 
             <View style={styles.sectionDivider} />

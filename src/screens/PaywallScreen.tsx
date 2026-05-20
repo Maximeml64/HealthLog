@@ -17,6 +17,7 @@ import { PurchasesPackage } from 'react-native-purchases';
 import { usePremiumStore } from '../stores/usePremiumStore';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../utils/theme';
 import { PRIVACY_POLICY_URL, CGU_URL } from '../constants/urls';
+import { haptic } from '../utils/haptics';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -68,9 +69,11 @@ export default function PaywallScreen() {
     setPurchasing(true);
     try {
       await purchasePackage(selectedPkg);
+      haptic.success();
       navigation.goBack();
     } catch (e) {
       const message = e instanceof Error ? e.message : "L'achat a échoué. Réessayez.";
+      haptic.error();
       Alert.alert('Erreur', message);
     } finally {
       setPurchasing(false);
@@ -83,12 +86,14 @@ export default function PaywallScreen() {
       await restorePurchases();
       const { isPremium } = usePremiumStore.getState();
       if (isPremium) {
+        haptic.success();
         Alert.alert('Abonnement restauré ✓', 'Votre accès Premium est actif.');
         navigation.goBack();
       } else {
         Alert.alert('Aucun achat trouvé', 'Aucun abonnement actif trouvé sur ce compte.');
       }
     } catch {
+      haptic.error();
       Alert.alert('Erreur', 'Impossible de restaurer les achats.');
     } finally {
       setRestoring(false);

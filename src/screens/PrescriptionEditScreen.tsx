@@ -23,11 +23,13 @@ import { useAppStore } from '../stores/useAppStore';
 import { Prescription, PrescribedMedication, MEDICATION_UNIT_LABELS } from '../types';
 import { Colors, Typography, Spacing, Radius } from '../utils/theme';
 import { Button, Card } from '../components/UI';
+import { CharCounter } from '../components/CharCounter';
 import { DateTimeField } from '../components/DateTimeField';
 import { PrescribedMedicationForm } from '../components/PrescribedMedicationForm';
 import { summarizeIntakeTimes } from '../services/PrescriptionService';
 import * as PhotoService from '../services/PhotoService';
 import { generateId } from '../utils/helpers';
+import { LIMITS } from '../constants/limits';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -377,6 +379,8 @@ export default function PrescriptionEditScreen() {
             placeholderTextColor={Colors.textMuted}
             autoCorrect={false}
             returnKeyType="next"
+            autoCapitalize="words"
+            maxLength={80}
           />
         </View>
 
@@ -445,7 +449,10 @@ export default function PrescriptionEditScreen() {
             numberOfLines={4}
             scrollEnabled={false}
             textAlignVertical="top"
+            autoCapitalize="sentences"
+            maxLength={LIMITS.MAX_NOTE_CHARS}
           />
+          <CharCounter value={form.notes} />
         </View>
 
         {/* ── Section Médicaments ── */}

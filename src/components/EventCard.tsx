@@ -18,7 +18,7 @@ interface EventCardProps {
   compact?: boolean;
 }
 
-export const EventCard: React.FC<EventCardProps> = ({
+const EventCardImpl: React.FC<EventCardProps> = ({
   event,
   profile,
   onPress,
@@ -125,6 +125,25 @@ export const EventCard: React.FC<EventCardProps> = ({
     </TouchableOpacity>
   );
 };
+
+/**
+ * Memoized to avoid re-rendering hundreds of unchanged events when a parent
+ * state changes (e.g. typing in the search box on Historique re-renders the
+ * SectionList shell; without memo, every visible card re-renders too).
+ *
+ * `onPress` / `onLongPress` are intentionally excluded from the comparator:
+ * parents pass inline closures (`() => navigation.navigate(...)`) which
+ * would always reference-fail and defeat the memo. In this codebase those
+ * handlers semantically depend only on the event ID, so it's safe.
+ */
+export const EventCard = React.memo(EventCardImpl, (prev, next) => {
+  return (
+    prev.event === next.event &&
+    prev.profile === next.profile &&
+    prev.showProfile === next.showProfile &&
+    prev.compact === next.compact
+  );
+});
 
 const styles = StyleSheet.create({
   card: {

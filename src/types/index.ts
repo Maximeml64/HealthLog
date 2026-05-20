@@ -203,6 +203,8 @@ export interface AppSettings {
   default_profile_id: string | null;
   notifications_enabled: boolean;
   legal_accepted: boolean;
+  /** When true, the app requires Face ID / passcode on cold start and on foreground. */
+  app_lock_enabled: boolean;
 }
 
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {

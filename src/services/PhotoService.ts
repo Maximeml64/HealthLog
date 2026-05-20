@@ -1,9 +1,17 @@
 // src/services/PhotoService.ts
 
 import * as FileSystem from 'expo-file-system';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { Platform } from 'react-native';
 
 const PHOTO_DIR = (FileSystem.documentDirectory ?? '') + 'photos/';
+
+// Sweet spot for prescription/symptom photos: 1600px width is enough for
+// pinch-to-zoom on the original prescription text, and 0.75 JPEG quality
+// brings a typical iPhone 12-MP photo from 4-5 MB down to ~400-700 KB.
+// Halving the storage footprint × the time to backup-zip every photo.
+const MAX_WIDTH = 1600;
+const COMPRESS_QUALITY = 0.75;
 
 /**
  * On iOS, files under `documentDirectory` are included in iCloud Backups
@@ -39,9 +47,18 @@ export async function ensurePhotoDir(): Promise<void> {
 
 export async function savePhoto(uri: string): Promise<string> {
   await ensurePhotoDir();
+  // Resize + recompress BEFORE copying into the sandbox. Storing 4-5 MB
+  // originals would balloon both the photo dir and every future backup
+  // ZIP, with no perceptual benefit for what is essentially a thumbnail
+  // of a prescription / symptom.
+  const manipulated = await manipulateAsync(
+    uri,
+    [{ resize: { width: MAX_WIDTH } }],
+    { compress: COMPRESS_QUALITY, format: SaveFormat.JPEG },
+  );
   const filename = `event_${Date.now()}_${Math.floor(Math.random() * 100000)}.jpg`;
   const dest = PHOTO_DIR + filename;
-  await FileSystem.copyAsync({ from: uri, to: dest });
+  await FileSystem.copyAsync({ from: manipulated.uri, to: dest });
   await setNoBackupFlag(dest);
   return dest;
 }
