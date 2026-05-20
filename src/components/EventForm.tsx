@@ -23,6 +23,9 @@ import * as DraftService from '../services/DraftService';
 import type { EventDraft } from '../services/DraftService';
 import { LIMITS } from '../constants/limits';
 import { COMMON_SYMPTOMS } from '../constants/symptomCatalog';
+import { COMMON_MOODS } from '../constants/moodCatalog';
+import { COMMON_SLEEP } from '../constants/sleepCatalog';
+import { QuickPickChips, type ChipOption } from './QuickPickChips';
 import { haptic } from '../utils/haptics';
 
 interface EventFormProps {
@@ -60,6 +63,14 @@ function parseMeta(metaJson: string | null): Record<string, string> {
 const TEMP_METHODS = ['oral', 'axillary', 'rectal', 'ear', 'forehead'] as const;
 const HAS_NUMERIC: EventType[] = ['temperature', 'weight', 'height'];
 const HAS_INTENSITY: EventType[] = ['symptom', 'mood', 'appetite', 'sleep', 'digestion'];
+
+// Event types that benefit from a quick-pick chip catalogue above the
+// title field. Each entry yields the chip label + the catalogue itself.
+const QUICK_PICK_CATALOG: Partial<Record<EventType, { label: string; options: ChipOption[] }>> = {
+  symptom: { label: 'Symptôme courant', options: COMMON_SYMPTOMS },
+  mood:    { label: 'Humeur du moment', options: COMMON_MOODS },
+  sleep:   { label: 'Type de nuit',     options: COMMON_SLEEP },
+};
 
 export const EventForm: React.FC<EventFormProps> = ({
   profile,
@@ -209,62 +220,37 @@ export const EventForm: React.FC<EventFormProps> = ({
         onChange={setOccurredAt}
       />
 
-      {/* Symptom quick-pick chips — pre-fills title + subtype */}
-      {eventType === 'symptom' && (
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Symptôme courant</Text>
-          <View style={styles.chipRow}>
-            {COMMON_SYMPTOMS.map((s) => {
-              const selected = subtype === s.code;
-              return (
-                <TouchableOpacity
-                  key={s.code}
-                  onPress={() => {
-                    if (selected) {
-                      // Tap-to-deselect: keep the user's typed title, just
-                      // drop the code so it counts as "Autre / libre".
-                      setSubtype(null);
-                    } else {
-                      setSubtype(s.code);
-                      setTitle(s.label);
-                      haptic.tap();
-                    }
-                  }}
-                  style={[styles.symptomChip, selected && styles.chipSelected]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={s.label}
-                >
-                  <Text style={styles.symptomChipIcon}>{s.icon}</Text>
-                  <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                    {s.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          <Text style={styles.symptomHint}>
-            {subtype
-              ? 'Touche à nouveau pour saisir un autre symptôme.'
-              : 'Choisis un symptôme ou saisis-le librement ci-dessous.'}
-          </Text>
-        </View>
+      {/* Quick-pick chips for symptom / mood / sleep — pre-fills title + subtype */}
+      {QUICK_PICK_CATALOG[eventType] && (
+        <QuickPickChips
+          label={QUICK_PICK_CATALOG[eventType]!.label}
+          options={QUICK_PICK_CATALOG[eventType]!.options}
+          selectedCode={subtype}
+          onPick={(opt) => {
+            setSubtype(opt.code);
+            setTitle(opt.label);
+            haptic.tap();
+          }}
+          onDeselect={() => setSubtype(null)}
+        />
       )}
 
       {/* Titre */}
       <View style={styles.field}>
         <Text style={styles.fieldLabel}>
-          {eventType === 'symptom' ? 'Titre (modifiable)' : 'Titre'}
+          {QUICK_PICK_CATALOG[eventType] ? 'Titre (modifiable)' : 'Titre'}
         </Text>
         <TextInput
           style={styles.input}
           value={title}
           onChangeText={(v) => {
             setTitle(v);
-            // Free-typing diverging from the chip → drop the canonical code.
-            // Lets the event count as "Autre" in future stats.
+            // Free-typing diverging from the chip → drop the canonical code
+            // so the event counts as "Autre" in future stats. We resolve
+            // against the active catalogue (symptoms / moods / sleep).
             if (subtype) {
-              const picked = COMMON_SYMPTOMS.find((s) => s.code === subtype);
+              const catalogue = QUICK_PICK_CATALOG[eventType]?.options ?? [];
+              const picked = catalogue.find((o) => o.code === subtype);
               if (!picked || picked.label !== v) setSubtype(null);
             }
           }}
@@ -441,6 +427,8 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   inputMultiline: { height: 80, textAlignVertical: 'top' },
+  // Temperature method chips — pure text, distinct from QuickPickChips which
+  // are icon-led. Kept inline here to avoid a generic chip component yet.
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   chip: {
     paddingHorizontal: 12,
@@ -453,26 +441,4 @@ const styles = StyleSheet.create({
   chipSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryMuted },
   chipText: { fontSize: 13, color: Colors.textSecondary },
   chipTextSelected: { color: Colors.primary, fontWeight: '600' },
-
-  // Symptom chips — wider, icon-led; differ from the temperature method
-  // chips which are pure text.
-  symptomChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-  },
-  symptomChipIcon: { fontSize: 14 },
-  symptomHint: {
-    marginTop: Spacing.sm,
-    fontSize: 11,
-    color: Colors.textMuted,
-    fontStyle: 'italic',
-    lineHeight: 14,
-  },
 });
