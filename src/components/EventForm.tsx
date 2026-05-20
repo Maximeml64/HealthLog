@@ -22,6 +22,7 @@ import { safeParseMeta } from '../utils/safeParse';
 import * as DraftService from '../services/DraftService';
 import type { EventDraft } from '../services/DraftService';
 import { LIMITS } from '../constants/limits';
+import { COMMON_SYMPTOMS } from '../constants/symptomCatalog';
 import { haptic } from '../utils/haptics';
 
 interface EventFormProps {
@@ -90,6 +91,10 @@ export const EventForm: React.FC<EventFormProps> = ({
     seed?.occurred_at ?? new Date().toISOString()
   );
   const [photos, setPhotos] = useState<string[]>(seed?.photos ?? []);
+  // `subtype` carries the canonical symptom code (e.g. "headache") when
+  // the user picks a chip on a symptom event. Preserved across edits so
+  // tapping save doesn't blank a previously-categorised event.
+  const [subtype, setSubtype] = useState<string | null>(initialValues?.subtype ?? null);
 
   // ── Draft auto-save ────────────────────────────────────────────────────
   // Skipped on the first render so a freshly-loaded draft doesn't re-save
@@ -147,6 +152,7 @@ export const EventForm: React.FC<EventFormProps> = ({
           note: note.trim(),
           numeric_value: parsedNumeric,
           intensity,
+          subtype,
           metadata_json: Object.keys(meta).length > 0 ? JSON.stringify(meta) : null,
           photos,
           updated_at: now,
@@ -161,7 +167,7 @@ export const EventForm: React.FC<EventFormProps> = ({
           numeric_value: parsedNumeric,
           unit: getDefaultUnit(eventType),
           intensity,
-          subtype: null,
+          subtype,
           metadata_json: Object.keys(meta).length > 0 ? JSON.stringify(meta) : null,
           attachment_uris: [],
           photos,
@@ -203,13 +209,65 @@ export const EventForm: React.FC<EventFormProps> = ({
         onChange={setOccurredAt}
       />
 
+      {/* Symptom quick-pick chips — pre-fills title + subtype */}
+      {eventType === 'symptom' && (
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Symptôme courant</Text>
+          <View style={styles.chipRow}>
+            {COMMON_SYMPTOMS.map((s) => {
+              const selected = subtype === s.code;
+              return (
+                <TouchableOpacity
+                  key={s.code}
+                  onPress={() => {
+                    if (selected) {
+                      // Tap-to-deselect: keep the user's typed title, just
+                      // drop the code so it counts as "Autre / libre".
+                      setSubtype(null);
+                    } else {
+                      setSubtype(s.code);
+                      setTitle(s.label);
+                      haptic.tap();
+                    }
+                  }}
+                  style={[styles.symptomChip, selected && styles.chipSelected]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={s.label}
+                >
+                  <Text style={styles.symptomChipIcon}>{s.icon}</Text>
+                  <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                    {s.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <Text style={styles.symptomHint}>
+            {subtype
+              ? 'Touche à nouveau pour saisir un autre symptôme.'
+              : 'Choisis un symptôme ou saisis-le librement ci-dessous.'}
+          </Text>
+        </View>
+      )}
+
       {/* Titre */}
       <View style={styles.field}>
-        <Text style={styles.fieldLabel}>Titre</Text>
+        <Text style={styles.fieldLabel}>
+          {eventType === 'symptom' ? 'Titre (modifiable)' : 'Titre'}
+        </Text>
         <TextInput
           style={styles.input}
           value={title}
-          onChangeText={setTitle}
+          onChangeText={(v) => {
+            setTitle(v);
+            // Free-typing diverging from the chip → drop the canonical code.
+            // Lets the event count as "Autre" in future stats.
+            if (subtype) {
+              const picked = COMMON_SYMPTOMS.find((s) => s.code === subtype);
+              if (!picked || picked.label !== v) setSubtype(null);
+            }
+          }}
           placeholder={EVENT_TYPE_LABELS[eventType]}
           placeholderTextColor={Colors.textMuted}
           returnKeyType="next"
@@ -395,4 +453,26 @@ const styles = StyleSheet.create({
   chipSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryMuted },
   chipText: { fontSize: 13, color: Colors.textSecondary },
   chipTextSelected: { color: Colors.primary, fontWeight: '600' },
+
+  // Symptom chips — wider, icon-led; differ from the temperature method
+  // chips which are pure text.
+  symptomChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  symptomChipIcon: { fontSize: 14 },
+  symptomHint: {
+    marginTop: Spacing.sm,
+    fontSize: 11,
+    color: Colors.textMuted,
+    fontStyle: 'italic',
+    lineHeight: 14,
+  },
 });
