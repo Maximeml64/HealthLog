@@ -23,11 +23,13 @@ import { useAppStore } from '../stores/useAppStore';
 import { Prescription, PrescribedMedication, MEDICATION_UNIT_LABELS } from '../types';
 import { Colors, Typography, Spacing, Radius } from '../utils/theme';
 import { Button, Card } from '../components/UI';
+import { CharCounter } from '../components/CharCounter';
 import { DateTimeField } from '../components/DateTimeField';
 import { PrescribedMedicationForm } from '../components/PrescribedMedicationForm';
 import { summarizeIntakeTimes } from '../services/PrescriptionService';
 import * as PhotoService from '../services/PhotoService';
 import { generateId } from '../utils/helpers';
+import { LIMITS } from '../constants/limits';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -164,7 +166,7 @@ export default function PrescriptionEditScreen() {
       Alert.alert('Permission refusée', "L'accès à la caméra est nécessaire.");
       return;
     }
-    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 });
     if (!result.canceled && result.assets.length > 0) {
       const saved = await PhotoService.savePhoto(result.assets[0].uri);
       updateForm({ image_uri: saved });
@@ -177,7 +179,7 @@ export default function PrescriptionEditScreen() {
       Alert.alert('Permission refusée', "L'accès à la galerie est nécessaire.");
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
     if (!result.canceled && result.assets.length > 0) {
       const saved = await PhotoService.savePhoto(result.assets[0].uri);
       updateForm({ image_uri: saved });
@@ -377,6 +379,8 @@ export default function PrescriptionEditScreen() {
             placeholderTextColor={Colors.textMuted}
             autoCorrect={false}
             returnKeyType="next"
+            autoCapitalize="words"
+            maxLength={80}
           />
         </View>
 
@@ -445,7 +449,10 @@ export default function PrescriptionEditScreen() {
             numberOfLines={4}
             scrollEnabled={false}
             textAlignVertical="top"
+            autoCapitalize="sentences"
+            maxLength={LIMITS.MAX_NOTE_CHARS}
           />
+          <CharCounter value={form.notes} />
         </View>
 
         {/* ── Section Médicaments ── */}

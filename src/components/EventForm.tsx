@@ -17,17 +17,25 @@ import { Button, Avatar, IntensityPicker } from './UI';
 import { DateTimeField } from './DateTimeField';
 import { generateId } from '../utils/helpers';
 import { PhotoPicker } from './PhotoPicker';
+import { CharCounter } from './CharCounter';
 import { safeParseMeta } from '../utils/safeParse';
 import * as DraftService from '../services/DraftService';
 import type { EventDraft } from '../services/DraftService';
 import { LIMITS } from '../constants/limits';
+import { COMMON_SYMPTOMS } from '../constants/symptomCatalog';
+import { COMMON_MOODS } from '../constants/moodCatalog';
+import { COMMON_SLEEP } from '../constants/sleepCatalog';
+import { COMMON_DIGESTION } from '../constants/digestionCatalog';
+import { COMMON_APPETITE } from '../constants/appetiteCatalog';
+import { QuickPickChips, type ChipOption } from './QuickPickChips';
+import { haptic } from '../utils/haptics';
 
 interface EventFormProps {
   profile: Profile;
   eventType: EventType;
   initialValues: HealthEvent | null;
   onSave: (event: HealthEvent) => void;
-  onCancel: () => void;
+  onCancel?: () => void;
   /**
    * When true (typical for the "new event" flow), the form persists its
    * current state as a draft on every change so an accidental modal close
@@ -57,6 +65,16 @@ function parseMeta(metaJson: string | null): Record<string, string> {
 const TEMP_METHODS = ['oral', 'axillary', 'rectal', 'ear', 'forehead'] as const;
 const HAS_NUMERIC: EventType[] = ['temperature', 'weight', 'height'];
 const HAS_INTENSITY: EventType[] = ['symptom', 'mood', 'appetite', 'sleep', 'digestion'];
+
+// Event types that benefit from a quick-pick chip catalogue above the
+// title field. Each entry yields the chip label + the catalogue itself.
+const QUICK_PICK_CATALOG: Partial<Record<EventType, { label: string; options: ChipOption[] }>> = {
+  symptom:   { label: 'Symptôme courant', options: COMMON_SYMPTOMS },
+  mood:      { label: 'Humeur du moment', options: COMMON_MOODS },
+  sleep:     { label: 'Type de nuit',     options: COMMON_SLEEP },
+  digestion: { label: 'État digestif',    options: COMMON_DIGESTION },
+  appetite:  { label: 'Niveau d\'appétit', options: COMMON_APPETITE },
+};
 
 export const EventForm: React.FC<EventFormProps> = ({
   profile,
@@ -88,6 +106,10 @@ export const EventForm: React.FC<EventFormProps> = ({
     seed?.occurred_at ?? new Date().toISOString()
   );
   const [photos, setPhotos] = useState<string[]>(seed?.photos ?? []);
+  // `subtype` carries the canonical symptom code (e.g. "headache") when
+  // the user picks a chip on a symptom event. Preserved across edits so
+  // tapping save doesn't blank a previously-categorised event.
+  const [subtype, setSubtype] = useState<string | null>(initialValues?.subtype ?? null);
 
   // ── Draft auto-save ────────────────────────────────────────────────────
   // Skipped on the first render so a freshly-loaded draft doesn't re-save
@@ -118,9 +140,24 @@ export const EventForm: React.FC<EventFormProps> = ({
 
   const handleSave = () => {
     if (!title.trim()) {
+      haptic.error();
       Alert.alert('Titre requis', "Merci d'ajouter un titre court.");
       return;
     }
+
+    // Parse defensively: garbage like "abc" or "3,4,5" should NOT persist NaN,
+    // which propagates silently into Math.min/max and chart rendering.
+    let parsedNumeric: number | null = null;
+    if (numericValue.trim()) {
+      const v = parseFloat(numericValue.replace(',', '.'));
+      if (!Number.isFinite(v)) {
+        haptic.error();
+        Alert.alert('Valeur invalide', 'Merci de saisir un nombre valide.');
+        return;
+      }
+      parsedNumeric = v;
+    }
+
     const now = new Date().toISOString();
     const event: HealthEvent = initialValues
       ? {
@@ -128,8 +165,9 @@ export const EventForm: React.FC<EventFormProps> = ({
           title: title.trim(),
           occurred_at: occurredAt,
           note: note.trim(),
-          numeric_value: numericValue ? parseFloat(numericValue.replace(',', '.')) : null,
+          numeric_value: parsedNumeric,
           intensity,
+          subtype,
           metadata_json: Object.keys(meta).length > 0 ? JSON.stringify(meta) : null,
           photos,
           updated_at: now,
@@ -141,10 +179,10 @@ export const EventForm: React.FC<EventFormProps> = ({
           title: title.trim(),
           occurred_at: occurredAt,
           note: note.trim(),
-          numeric_value: numericValue ? parseFloat(numericValue.replace(',', '.')) : null,
+          numeric_value: parsedNumeric,
           unit: getDefaultUnit(eventType),
           intensity,
-          subtype: null,
+          subtype,
           metadata_json: Object.keys(meta).length > 0 ? JSON.stringify(meta) : null,
           attachment_uris: [],
           photos,
@@ -152,6 +190,7 @@ export const EventForm: React.FC<EventFormProps> = ({
           updated_at: now,
         };
 
+    haptic.success();
     onSave(event);
     if (enableDraft) {
       void DraftService.clearDraft();
@@ -185,15 +224,45 @@ export const EventForm: React.FC<EventFormProps> = ({
         onChange={setOccurredAt}
       />
 
+      {/* Quick-pick chips for symptom / mood / sleep — pre-fills title + subtype */}
+      {QUICK_PICK_CATALOG[eventType] && (
+        <QuickPickChips
+          label={QUICK_PICK_CATALOG[eventType]!.label}
+          options={QUICK_PICK_CATALOG[eventType]!.options}
+          selectedCode={subtype}
+          onPick={(opt) => {
+            setSubtype(opt.code);
+            setTitle(opt.label);
+            haptic.tap();
+          }}
+          onDeselect={() => setSubtype(null)}
+        />
+      )}
+
       {/* Titre */}
       <View style={styles.field}>
-        <Text style={styles.fieldLabel}>Titre</Text>
+        <Text style={styles.fieldLabel}>
+          {QUICK_PICK_CATALOG[eventType] ? 'Titre (modifiable)' : 'Titre'}
+        </Text>
         <TextInput
           style={styles.input}
           value={title}
-          onChangeText={setTitle}
+          onChangeText={(v) => {
+            setTitle(v);
+            // Free-typing diverging from the chip → drop the canonical code
+            // so the event counts as "Autre" in future stats. We resolve
+            // against the active catalogue (symptoms / moods / sleep).
+            if (subtype) {
+              const catalogue = QUICK_PICK_CATALOG[eventType]?.options ?? [];
+              const picked = catalogue.find((o) => o.code === subtype);
+              if (!picked || picked.label !== v) setSubtype(null);
+            }
+          }}
           placeholder={EVENT_TYPE_LABELS[eventType]}
           placeholderTextColor={Colors.textMuted}
+          returnKeyType="next"
+          autoCapitalize="sentences"
+          maxLength={120}
         />
       </View>
 
@@ -245,6 +314,9 @@ export const EventForm: React.FC<EventFormProps> = ({
               onChangeText={(v) => setMeta({ ...meta, medication_name: v })}
               placeholder="Doliprane, Advil…"
               placeholderTextColor={Colors.textMuted}
+              returnKeyType="next"
+              autoCapitalize="words"
+              maxLength={80}
             />
           </View>
           <View style={styles.field}>
@@ -255,6 +327,9 @@ export const EventForm: React.FC<EventFormProps> = ({
               onChangeText={(v) => setMeta({ ...meta, dosage_text: v })}
               placeholder="500mg, 1 comprimé…"
               placeholderTextColor={Colors.textMuted}
+              returnKeyType="next"
+              autoCapitalize="none"
+              maxLength={80}
             />
           </View>
         </>
@@ -271,6 +346,9 @@ export const EventForm: React.FC<EventFormProps> = ({
               onChangeText={(v) => setMeta({ ...meta, practitioner: v })}
               placeholder="Dr Martin, Dentiste…"
               placeholderTextColor={Colors.textMuted}
+              returnKeyType="next"
+              autoCapitalize="words"
+              maxLength={80}
             />
           </View>
           <View style={styles.field}>
@@ -281,6 +359,9 @@ export const EventForm: React.FC<EventFormProps> = ({
               onChangeText={(v) => setMeta({ ...meta, location: v })}
               placeholder="Adresse, cabinet…"
               placeholderTextColor={Colors.textMuted}
+              returnKeyType="next"
+              autoCapitalize="words"
+              maxLength={120}
             />
           </View>
         </>
@@ -307,7 +388,10 @@ export const EventForm: React.FC<EventFormProps> = ({
           numberOfLines={3}
           scrollEnabled={false}
           textAlignVertical="top"
+          autoCapitalize="sentences"
+          maxLength={LIMITS.MAX_NOTE_CHARS}
         />
+        <CharCounter value={note} />
       </View>
 
       {/* Photos */}
@@ -347,6 +431,8 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   inputMultiline: { height: 80, textAlignVertical: 'top' },
+  // Temperature method chips — pure text, distinct from QuickPickChips which
+  // are icon-led. Kept inline here to avoid a generic chip component yet.
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   chip: {
     paddingHorizontal: 12,

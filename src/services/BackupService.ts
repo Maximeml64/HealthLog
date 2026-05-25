@@ -116,18 +116,20 @@ async function restorePhotoFromZip(zip: JSZip, filename: string): Promise<string
  */
 async function rescheduleReminders(reminders: Reminder[]): Promise<void> {
   const active = reminders.filter((r) => r.active);
-  for (const reminder of active) {
-    try {
-      const notifIds = await NotificationService.scheduleRecurringNotification(reminder);
-      await storageUpsertReminder({
-        ...reminder,
-        notification_ids: notifIds,
-        notification_id: null,
-      });
-    } catch {
-      // Non-critical: reminder row survives even if OS scheduling fails
-    }
-  }
+  await Promise.all(
+    active.map(async (reminder) => {
+      try {
+        const notifIds = await NotificationService.scheduleRecurringNotification(reminder);
+        await storageUpsertReminder({
+          ...reminder,
+          notification_ids: notifIds,
+          notification_id: null,
+        });
+      } catch {
+        // Non-critical: reminder row survives even if OS scheduling fails
+      }
+    }),
+  );
 }
 
 // ─── Export ───────────────────────────────────────────────────────────────────
@@ -151,10 +153,9 @@ export async function exportBackup(): Promise<string> {
   const eventsForBackup: HealthEvent[] = await Promise.all(
     events.map(async (event) => {
       if (!event.photos || event.photos.length === 0) return event;
-      const filenames: string[] = [];
-      for (const photoUri of event.photos) {
-        filenames.push(await addPhotoToZip(photosFolder, photoUri));
-      }
+      const filenames = await Promise.all(
+        event.photos.map((photoUri) => addPhotoToZip(photosFolder, photoUri)),
+      );
       return { ...event, photos: filenames };
     })
   );
@@ -256,9 +257,11 @@ export async function importBackup(
   const restoredEvents: HealthEvent[] = await Promise.all(
     data.events.map(async (event) => {
       if (!event.photos || event.photos.length === 0) return event;
+      const results = await Promise.all(
+        event.photos.map((filename) => restorePhotoFromZip(zip, filename)),
+      );
       const restoredUris: string[] = [];
-      for (const filename of event.photos) {
-        const uri = await restorePhotoFromZip(zip, filename);
+      for (const uri of results) {
         if (uri) {
           restoredUris.push(uri);
           photoCount++;

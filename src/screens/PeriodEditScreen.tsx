@@ -7,7 +7,9 @@ import {
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 import { addDays, format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useMenstrualStore } from '../stores/useMenstrualStore';
@@ -18,7 +20,6 @@ import { Colors, Radius, Spacing, Typography } from '../utils/theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Mode = 'createCycle' | 'editCycle' | 'editDay';
 type FlowOption = FlowIntensity | 'none';
 
 const FLOW_OPTIONS: FlowOption[] = ['none', 'light', 'medium', 'heavy'];
@@ -38,10 +39,9 @@ function datesInRange(start: string, end: string): string[] {
 // ─── PeriodEditScreen ─────────────────────────────────────────────────────────
 
 export default function PeriodEditScreen() {
-  const navigation = useNavigation<any>();
-  const { profileId, mode, cycleId, date: routeDate } = useRoute<any>().params as {
-    profileId: string; mode: Mode; cycleId?: string; date?: string;
-  };
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'PeriodEditScreen'>>();
+  const { profileId, mode, cycleId, date: routeDate } = route.params;
 
   const {
     cycles, addCycle, updateCycle, deleteCycle, upsertDayLog,

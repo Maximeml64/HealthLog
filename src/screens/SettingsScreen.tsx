@@ -18,21 +18,23 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
+import * as LocalAuthentication from 'expo-local-authentication';
+import { Bell, Download, Upload, Trash2, Info, ScrollText, Lock, ShieldCheck, Sparkles, ChevronRight, type LucideIcon } from 'lucide-react-native';
 import { useAppStore } from '../stores/useAppStore';
 import { useMenstrualStore } from '../stores/useMenstrualStore';
 import { usePremiumStore } from '../stores/usePremiumStore';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { Colors, Typography, Spacing, Radius } from '../utils/theme';
-import { Card, Button } from '../components/UI';
+import { Card } from '../components/UI';
 import { clearAllData } from '../services/StorageService';
 import { exportBackup, importBackup } from '../services/BackupService';
-
-const PRIVACY_POLICY_URL = 'https://momentous-locket-2af.notion.site/Politique-de-Confidentialit-Healthlog-34f84071bf3e80af8320fb83f0d6ee11';
-const CGU_URL = 'https://momentous-locket-2af.notion.site/Conditions-G-n-rales-d-Utilisation-Healthlog-34f84071bf3e80b7811cf3a8f7ca5254';
+import { PRIVACY_POLICY_URL, CGU_URL } from '../constants/urls';
 
 export default function SettingsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { settings, updateSettings, loadAll } = useAppStore();
+  const settings = useAppStore((s) => s.settings);
+  const updateSettings = useAppStore((s) => s.updateSettings);
+  const loadAll = useAppStore((s) => s.loadAll);
   const isPremium = usePremiumStore((s) => s.isPremium);
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -115,6 +117,26 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleToggleAppLock = async (next: boolean) => {
+    if (!next) {
+      // Disabling never requires re-auth — user already passed the gate this session.
+      await updateSettings({ app_lock_enabled: false });
+      return;
+    }
+    // Enabling: verify the device has biometrics enrolled BEFORE flipping
+    // the flag, otherwise the user could lock themselves out on next launch.
+    const hasHw = await LocalAuthentication.hasHardwareAsync();
+    const enrolled = await LocalAuthentication.isEnrolledAsync();
+    if (!hasHw || !enrolled) {
+      Alert.alert(
+        'Authentification non disponible',
+        "Configure Face ID, Touch ID ou un code dans les Réglages iOS avant d'activer le verrouillage."
+      );
+      return;
+    }
+    await updateSettings({ app_lock_enabled: true });
+  };
+
   const handleClearData = () => {
     Alert.alert(
       'Effacer toutes les données ?',
@@ -133,22 +155,8 @@ export default function SettingsScreen() {
     );
   };
 
-  const handleActivatePremium = () => {
-    Alert.alert(
-      'Version Premium',
-      'L\'achat in-app sera disponible dans une prochaine mise à jour.\n\nFonctionnalités incluses :\n• Profils illimités\n• Sauvegarde cloud',
-      [
-        { text: 'OK' },
-        {
-          text: 'Activer (dev)',
-          onPress: () => updateSettings({ premium: true }),
-        },
-      ]
-    );
-  };
-
   const SettingRow = ({
-    icon,
+    icon: Icon,
     label,
     sublabel,
     right,
@@ -157,7 +165,7 @@ export default function SettingsScreen() {
     disabled,
     accessibilityHint,
   }: {
-    icon: string;
+    icon: LucideIcon;
     label: string;
     sublabel?: string;
     right?: React.ReactNode;
@@ -165,25 +173,30 @@ export default function SettingsScreen() {
     danger?: boolean;
     disabled?: boolean;
     accessibilityHint?: string;
-  }) => (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={!onPress || disabled}
-      activeOpacity={onPress && !disabled ? 0.7 : 1}
-      accessibilityRole={onPress ? 'button' : 'none'}
-      accessibilityLabel={label}
-      accessibilityHint={accessibilityHint}
-      accessibilityState={disabled ? { disabled: true } : undefined}
-      style={[styles.settingRow, disabled && { opacity: 0.5 }]}
-    >
-      <Text style={styles.settingIcon}>{icon}</Text>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.settingLabel, danger && { color: Colors.danger }]}>{label}</Text>
-        {sublabel && <Text style={styles.settingSublabel}>{sublabel}</Text>}
-      </View>
-      {right ?? (onPress && <Text style={styles.chevron}>›</Text>)}
-    </TouchableOpacity>
-  );
+  }) => {
+    const iconColor = danger ? Colors.danger : Colors.primary;
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={!onPress || disabled}
+        activeOpacity={onPress && !disabled ? 0.7 : 1}
+        accessibilityRole={onPress ? 'button' : 'none'}
+        accessibilityLabel={label}
+        accessibilityHint={accessibilityHint}
+        accessibilityState={disabled ? { disabled: true } : undefined}
+        style={[styles.settingRow, disabled && { opacity: 0.5 }]}
+      >
+        <View style={[styles.settingIconWrap, danger && { backgroundColor: Colors.danger + '15' }]}>
+          <Icon size={18} color={iconColor} strokeWidth={2} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.settingLabel, danger && { color: Colors.danger }]}>{label}</Text>
+          {sublabel && <Text style={styles.settingSublabel}>{sublabel}</Text>}
+        </View>
+        {right ?? (onPress && <ChevronRight size={18} color={Colors.textMuted} strokeWidth={2} />)}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -196,7 +209,8 @@ export default function SettingsScreen() {
         {/* ── Premium RC banner (source of truth: usePremiumStore) ── */}
         {isPremium ? (
           <View style={styles.premiumActiveBadge}>
-            <Text style={styles.premiumActiveBadgeText}>✨ Premium actif</Text>
+            <Sparkles size={14} color={Colors.success} strokeWidth={2.4} />
+            <Text style={styles.premiumActiveBadgeText}>Premium actif</Text>
           </View>
         ) : (
           <TouchableOpacity
@@ -207,43 +221,25 @@ export default function SettingsScreen() {
             accessibilityLabel="Devenir Premium"
             accessibilityHint="Ouvre les offres d'abonnement"
           >
-            <Text style={styles.premiumBannerIcon}>⭐</Text>
+            <View style={styles.premiumBannerIconWrap}>
+              <Sparkles size={20} color={Colors.white} strokeWidth={2.4} />
+            </View>
             <View style={styles.premiumBannerBody}>
               <Text style={styles.premiumBannerTitle}>Devenir Premium</Text>
               <Text style={styles.premiumBannerSub}>
                 Profils illimités · Export PDF · Sauvegardes chiffrées
               </Text>
             </View>
-            <Text style={styles.premiumBannerChevron}>›</Text>
+            <ChevronRight size={20} color={Colors.white + 'CC'} strokeWidth={2.2} />
           </TouchableOpacity>
         )}
-
-        {/* Premium card (existing — settings.premium from AsyncStorage) */}
-        <Card style={styles.premiumCard}>
-          <View style={styles.premiumRow}>
-            <Text style={styles.premiumIcon}>⭐</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.premiumTitle}>
-                {settings.premium ? 'Version Premium active' : 'Passer en Premium'}
-              </Text>
-              <Text style={styles.premiumSub}>
-                {settings.premium
-                  ? 'Profils illimités, sauvegarde cloud'
-                  : '~9€/an — Profils illimités, sauvegarde cloud'}
-              </Text>
-            </View>
-            {!settings.premium && (
-              <Button label="Activer" onPress={handleActivatePremium} size="sm" />
-            )}
-          </View>
-        </Card>
 
         {/* Notifications */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>NOTIFICATIONS</Text>
           <Card padding={0}>
             <SettingRow
-              icon="🔔"
+              icon={Bell}
               label="Notifications de rappels"
               sublabel="Recevoir des alertes pour les rappels"
               right={
@@ -258,12 +254,32 @@ export default function SettingsScreen() {
           </Card>
         </View>
 
+        {/* Sécurité */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>SÉCURITÉ</Text>
+          <Card padding={0}>
+            <SettingRow
+              icon={ShieldCheck}
+              label="Verrouillage Face ID"
+              sublabel="Demander Face ID à l'ouverture de l'app"
+              right={
+                <Switch
+                  value={settings.app_lock_enabled}
+                  onValueChange={handleToggleAppLock}
+                  trackColor={{ false: Colors.border, true: Colors.primary + '80' }}
+                  thumbColor={settings.app_lock_enabled ? Colors.primary : Colors.textMuted}
+                />
+              }
+            />
+          </Card>
+        </View>
+
         {/* Data */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>DONNÉES</Text>
           <Card padding={0}>
             <SettingRow
-              icon="💾"
+              icon={Download}
               label={isBackingUp ? 'Sauvegarde en cours…' : 'Sauvegarder mes données'}
               sublabel="Exporter un backup ZIP (photos incluses)"
               onPress={handleBackup}
@@ -272,7 +288,7 @@ export default function SettingsScreen() {
             />
             <View style={styles.rowDivider} />
             <SettingRow
-              icon="📥"
+              icon={Upload}
               label={isRestoring ? 'Restauration en cours…' : 'Restaurer un backup'}
               sublabel="Importer un fichier ZIP Healthlog"
               onPress={handleRestore}
@@ -281,7 +297,7 @@ export default function SettingsScreen() {
             />
             <View style={styles.rowDivider} />
             <SettingRow
-              icon="🗑️"
+              icon={Trash2}
               label="Effacer toutes les données"
               sublabel="Action irréversible"
               onPress={handleClearData}
@@ -296,13 +312,13 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>INFORMATIONS</Text>
           <Card padding={0}>
             <SettingRow
-              icon="📋"
+              icon={ScrollText}
               label="Outil d'organisation personnelle"
               sublabel="Ne remplace pas un professionnel de santé"
             />
             <View style={styles.rowDivider} />
             <SettingRow
-              icon="ℹ️"
+              icon={Info}
               label="Version 1.0.0"
               sublabel="Healthlog"
             />
@@ -314,14 +330,14 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>LÉGAL</Text>
           <Card padding={0}>
             <SettingRow
-              icon="🔒"
+              icon={Lock}
               label="Politique de confidentialité"
               onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
               accessibilityHint="Ouvre la politique de confidentialité dans le navigateur"
             />
             <View style={styles.rowDivider} />
             <SettingRow
-              icon="📜"
+              icon={ScrollText}
               label="Conditions Générales d'Utilisation"
               onPress={() => Linking.openURL(CGU_URL)}
               accessibilityHint="Ouvre les conditions générales dans le navigateur"
@@ -331,7 +347,7 @@ export default function SettingsScreen() {
 
         <View style={styles.legalBlock}>
           <Text style={styles.legalText}>
-            ⚠️ Healthlog est un outil d'organisation personnelle.{'\n'}
+            Healthlog est un outil d'organisation personnelle.{'\n'}
             Il ne remplace en aucun cas l'avis d'un professionnel de santé.{'\n'}
             Consultez un médecin en cas de doute.
           </Text>
@@ -382,7 +398,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     gap: Spacing.md,
   },
-  premiumBannerIcon: { fontSize: 24 },
+  premiumBannerIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.md,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   premiumBannerBody: { flex: 1 },
   premiumBannerTitle: {
     fontSize: 15,
@@ -394,13 +417,10 @@ const styles = StyleSheet.create({
     color: Colors.white + 'CC',
     marginTop: 2,
   },
-  premiumBannerChevron: {
-    fontSize: 22,
-    color: Colors.white + 'CC',
-    fontWeight: '600',
-  },
-
   premiumActiveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: Colors.successLight,
     borderRadius: Radius.md,
     paddingVertical: Spacing.sm,
@@ -416,18 +436,6 @@ const styles = StyleSheet.create({
     color: Colors.success,
   },
 
-  // ── Existing premium card (unchanged) ─────────────────────────────────────
-  premiumCard: {
-    marginBottom: Spacing.xl,
-    padding: Spacing.lg,
-    backgroundColor: Colors.accentMuted,
-    borderColor: Colors.accent + '44',
-  },
-  premiumRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  premiumIcon: { fontSize: 28 },
-  premiumTitle: { fontSize: 15, fontWeight: '700', color: Colors.text },
-  premiumSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
-
   // ── Sections ──────────────────────────────────────────────────────────────
   section: { marginBottom: Spacing.lg },
   sectionTitle: {
@@ -438,22 +446,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
     paddingHorizontal: Spacing.lg, paddingVertical: 14,
   },
-  settingIcon: { fontSize: 18, width: 24 },
+  settingIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   settingLabel: { fontSize: 15, fontWeight: '500', color: Colors.text },
   settingSublabel: { fontSize: 12, color: Colors.textMuted, marginTop: 1 },
-  chevron: { fontSize: 20, color: Colors.textMuted },
-  rowDivider: { height: 1, backgroundColor: Colors.border, marginLeft: Spacing.lg + 24 + Spacing.md },
+  rowDivider: { height: 1, backgroundColor: Colors.border, marginLeft: Spacing.lg + 36 + Spacing.md },
   legalBlock: {
-    backgroundColor: Colors.accentLight,
+    backgroundColor: Colors.surfaceAlt,
     borderRadius: Radius.md,
     padding: Spacing.lg,
     marginTop: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.accent + '33',
+    borderColor: Colors.border,
   },
   legalText: {
     fontSize: 12,
-    color: Colors.accent,
+    color: Colors.textSecondary,
     lineHeight: 18,
     fontWeight: '500',
     textAlign: 'center',

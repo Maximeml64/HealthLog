@@ -11,6 +11,7 @@ import {
   getCycleStats, getCurrentPhase, getDayOfCycle, getDaysUntilNextPeriod,
   getFertilityWindow, getPregnancyTrimester, getPregnancyWeek, type CyclePhase,
 } from '../utils/menstrualCalc';
+import { useToday } from '../utils/useToday';
 import { Colors, Radius, Shadow, Spacing } from '../utils/theme';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -54,7 +55,7 @@ export const MenstrualCard: React.FC<MenstrualCardProps> = ({ profileId, onPress
     () => pregnancies.find((p) => p.profileId === profileId && p.endDate == null),
     [pregnancies, profileId]
   );
-  const today = useMemo(() => new Date(), []);
+  const today = useToday();
 
   if (!profile) return null;
 

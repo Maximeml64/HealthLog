@@ -4,7 +4,9 @@ import React, { useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useAppStore } from '../stores/useAppStore';
 import { useMenstrualStore } from '../stores/useMenstrualStore';
 import { DateTimeField } from '../components/DateTimeField';
@@ -21,10 +23,9 @@ function addDays(dateStr: string, days: number): string {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function PregnancyStartScreen() {
-  const navigation = useNavigation<any>();
-  const { profileId, prefillLmpDate } = useRoute<any>().params as {
-    profileId: string; prefillLmpDate?: string;
-  };
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'PregnancyStartScreen'>>();
+  const { profileId, prefillLmpDate } = route.params;
 
   const profiles = useAppStore((s) => s.profiles);
   const upsertProfile = useAppStore((s) => s.upsertProfile);

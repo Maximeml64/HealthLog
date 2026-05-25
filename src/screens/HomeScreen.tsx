@@ -5,15 +5,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import { Bell as BellIcon, ShieldCheck } from 'lucide-react-native';
 import { useAppStore } from '../stores/useAppStore';
-import { Colors, Typography, Spacing, Radius } from '../utils/theme';
+import { Colors, Typography, Spacing, Radius, Shadow } from '../utils/theme';
 import { Card, Avatar, SectionHeader, EmptyState } from '../components/UI';
 import { EventCard } from '../components/EventCard';
 import { FAB } from '../components/FAB';
 import { AddEventModal } from '../components/AddEventModal';
 import { MenstrualCard } from '../components/MenstrualCard';
 import { formatRelativeTime } from '../utils/helpers';
-import { parseISO, subDays, startOfDay } from 'date-fns';
+import { format, parseISO, subDays, startOfDay } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import {
   EVENT_TYPE_ICONS,
   EVENT_TYPE_LABELS,
@@ -155,13 +157,15 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
       >
         <View style={styles.header}>
-          <Text style={styles.greeting}>Bonjour 👋</Text>
+          <Text style={styles.eyebrow}>{format(new Date(), 'EEEE d MMMM', { locale: fr })}</Text>
+          <Text style={styles.greeting}>Bonjour</Text>
           <Text style={styles.subtitle}>Carnet de santé familial</Text>
         </View>
 
         <View style={styles.legalBanner}>
+          <ShieldCheck size={16} color={Colors.primary} strokeWidth={2} />
           <Text style={styles.legalText}>
-            {"📋 Outil d'organisation personnelle — Ne remplace pas un professionnel de santé"}
+            Outil d'organisation personnelle — Ne remplace pas un professionnel de santé
           </Text>
         </View>
 
@@ -258,7 +262,9 @@ export default function HomeScreen() {
               return (
                 <Card key={r.id} style={styles.reminderCard}>
                   <View style={styles.reminderRow}>
-                    <Text style={styles.reminderIcon}>🔔</Text>
+                    <View style={styles.reminderIconWrap}>
+                      <BellIcon size={18} color={Colors.primary} strokeWidth={2} />
+                    </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.reminderTitle}>{r.title}</Text>
                       {profile && (
@@ -294,14 +300,36 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
   scroll: { flex: 1 },
   content: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
-  header: { marginBottom: Spacing.md },
-  greeting: { ...Typography.display },
-  subtitle: { ...Typography.bodySmall, color: Colors.textMuted, marginTop: 2 },
-  legalBanner: {
-    backgroundColor: Colors.accentLight, borderRadius: Radius.md,
-    padding: Spacing.md, marginBottom: Spacing.lg,
+  header: { marginBottom: Spacing.lg },
+  eyebrow: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.primary,
+    letterSpacing: 0.4,
+    textTransform: 'capitalize',
+    marginBottom: 4,
   },
-  legalText: { fontSize: 11, color: '#FFFFFF', fontWeight: '500', lineHeight: 16 },
+  greeting: { ...Typography.display },
+  subtitle: { ...Typography.bodySmall, color: Colors.textMuted, marginTop: 4 },
+  legalBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.xl,
+    borderWidth: 1,
+    borderColor: Colors.primary + '20',
+  },
+  legalText: {
+    flex: 1,
+    fontSize: 11,
+    color: Colors.primary,
+    fontWeight: '500',
+    lineHeight: 16,
+  },
 
   // ── Stats dashboard ─────────────────────────────────────────────────────
   statsRow: {
@@ -319,9 +347,10 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     padding: Spacing.md,
     gap: 2,
+    ...Shadow.sm,
   },
   statIcon: { fontSize: 18, marginBottom: 2 },
-  statValue: { fontSize: 16, fontWeight: '700', color: Colors.text },
+  statValue: { fontSize: 16, fontWeight: '700', color: Colors.text, letterSpacing: -0.2 },
   statLabel: { fontSize: 11, color: Colors.textMuted, fontWeight: '500' },
 
   // ── Quick add ────────────────────────────────────────────────────────────
@@ -335,8 +364,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
-    minWidth: 80,
-    gap: 4,
+    minWidth: 84,
+    gap: 6,
+    ...Shadow.sm,
   },
   quickIcon: { fontSize: 22 },
   quickLabel: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary, maxWidth: 80 },
@@ -344,14 +374,27 @@ const styles = StyleSheet.create({
   section: { marginBottom: Spacing.xl },
   profilesRow: { gap: Spacing.sm, paddingRight: Spacing.lg },
   profileCard: {
-    alignItems: 'center', padding: Spacing.md, borderRadius: Radius.lg,
-    backgroundColor: Colors.surface, borderWidth: 1.5, width: 90, gap: 4,
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    width: 96,
+    gap: 6,
+    ...Shadow.sm,
   },
   profileName: { fontSize: 12, fontWeight: '600', color: Colors.text, textAlign: 'center' },
   profileCount: { fontSize: 10, color: Colors.textMuted },
   reminderCard: { marginBottom: Spacing.sm, padding: Spacing.md },
-  reminderRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
-  reminderIcon: { fontSize: 20 },
+  reminderRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  reminderIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   reminderTitle: { ...Typography.h3, fontSize: 14 },
   reminderSub: { fontSize: 12, fontWeight: '600', marginTop: 1 },
   reminderTime: { ...Typography.caption, marginTop: 2 },

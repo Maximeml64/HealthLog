@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
+      "backgroundColor": "#FBF8F3"
     },
     "ios": {
       "supportsTablet": false,
@@ -17,27 +17,24 @@
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Healthlog accède à votre photothèque pour vous permettre de joindre des photos à vos événements de santé (ordonnances, certificats, photos de symptômes).",
         "NSCameraUsageDescription": "Healthlog accède à votre appareil photo pour vous permettre de prendre des photos directement à associer à vos événements de santé.",
-        "NSUserNotificationsUsageDescription": "Healthlog utilise les notifications pour vous rappeler la prise de médicaments, les rendez-vous médicaux et autres rappels que vous configurez.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFF8F0"
+        "backgroundColor": "#FBF8F3"
       },
       "package": "com.maximeml.healthlog",
       "versionCode": 1,
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      "permissions": []
     },
     "plugins": [
       [
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#1E3A8A"
+          "color": "#3A6E5F"
         }
       ],
       "expo-image-picker",

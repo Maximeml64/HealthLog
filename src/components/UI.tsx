@@ -175,19 +175,15 @@ interface EmptyStateProps {
 
 export const EmptyState: React.FC<EmptyStateProps> = ({ emoji, title, subtitle, action }) => (
   <View style={styles.emptyState}>
-    <Text style={styles.emptyEmoji}>{emoji}</Text>
+    <View style={styles.emptyIconWrap}>
+      <Text style={styles.emptyEmoji}>{emoji}</Text>
+    </View>
     <Text style={styles.emptyTitle}>{title}</Text>
     {subtitle && <Text style={styles.emptySubtitle}>{subtitle}</Text>}
     {action && (
       <Button label={action.label} onPress={action.onPress} variant="secondary" style={{ marginTop: Spacing.lg }} />
     )}
   </View>
-);
-
-// ─── Divider ──────────────────────────────────────────────────────────────────
-
-export const Divider: React.FC<{ style?: ViewStyle }> = ({ style }) => (
-  <View style={[styles.divider, style]} />
 );
 
 // ─── SectionHeader ────────────────────────────────────────────────────────────
@@ -284,9 +280,17 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxxl,
     paddingHorizontal: Spacing.xl,
   },
+  emptyIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
+  },
   emptyEmoji: {
-    fontSize: 48,
-    marginBottom: Spacing.md,
+    fontSize: 36,
   },
   emptyTitle: {
     ...Typography.h3,
@@ -297,11 +301,6 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
     textAlign: 'center',
     lineHeight: 20,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: Spacing.md,
   },
   sectionHeader: {
     flexDirection: 'row',

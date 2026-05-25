@@ -20,28 +20,9 @@ import { useAppStore } from '../stores/useAppStore';
 import { Prescription } from '../types';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../utils/theme';
 import { EmptyState, Badge } from '../components/UI';
+import { FAB } from '../components/FAB';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-// ─── Local FAB ────────────────────────────────────────────────────────────────
-// Mirrors FAB.tsx exactly but with prescription-specific accessibility label.
-
-interface PrescriptionFABProps {
-  onPress: () => void;
-}
-
-const PrescriptionFAB: React.FC<PrescriptionFABProps> = ({ onPress }) => (
-  <TouchableOpacity
-    style={styles.fab}
-    onPress={onPress}
-    activeOpacity={0.85}
-    accessibilityRole="button"
-    accessibilityLabel="Ajouter une ordonnance"
-    accessibilityHint="Ouvre le formulaire de création d'une nouvelle ordonnance"
-  >
-    <Text style={styles.fabPlus}>＋</Text>
-  </TouchableOpacity>
-);
 
 // ─── Prescription card ────────────────────────────────────────────────────────
 
@@ -234,7 +215,11 @@ export default function PrescriptionsListScreen() {
       />
 
       {/* ── FAB ── */}
-      <PrescriptionFAB onPress={handleCreate} />
+      <FAB
+        onPress={handleCreate}
+        accessibilityLabel="Ajouter une ordonnance"
+        accessibilityHint="Ouvre le formulaire de création d'une nouvelle ordonnance"
+      />
     </SafeAreaView>
   );
 }
@@ -350,25 +335,5 @@ const styles = StyleSheet.create({
   cardMedsEmpty: {
     color: Colors.textMuted,
     fontWeight: '400',
-  },
-
-  // FAB — mirrors FAB.tsx styles exactly
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 20,
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: Colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadow.lg,
-  },
-  fabPlus: {
-    fontSize: 28,
-    color: Colors.white,
-    lineHeight: 32,
-    marginTop: -2,
   },
 });

@@ -1,9 +1,9 @@
 // src/screens/CycleScreen.tsx
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, AppState, StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Svg, { Circle } from 'react-native-svg';
 import {
@@ -18,6 +18,7 @@ import {
   getCycleStats, getCurrentPhase, getDayOfCycle, getDaysUntilNextPeriod,
   getFertilityWindow, predictNextPeriod, type CyclePhase,
 } from '../utils/menstrualCalc';
+import { useToday } from '../utils/useToday';
 import { Colors, Radius, Spacing, Typography } from '../utils/theme';
 import { Card, EmptyState, SectionHeader } from '../components/UI';
 import { FAB } from '../components/FAB';
@@ -55,9 +56,9 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 // ─── CycleScreen ──────────────────────────────────────────────────────────────
 
 export default function CycleScreen() {
-  const route = useRoute<any>();
+  const route = useRoute<RouteProp<RootStackParamList, 'CycleScreen'>>();
   const navigation = useNavigation<Nav>();
-  const { profileId } = route.params as { profileId: string };
+  const { profileId } = route.params;
 
   const profiles = useAppStore((s) => s.profiles);
   const upsertProfile = useAppStore((s) => s.upsertProfile);
@@ -65,30 +66,9 @@ export default function CycleScreen() {
 
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [modeSwitcherVisible, setModeSwitcherVisible] = useState(false);
-  // `today` was previously useMemo([], []) which froze the date at first render.
-  // Now: state initialised once, refreshed on app foreground and every 60s if
-  // the day changed. Phase / fertility / prediction memos depend on it, so a
-  // day rollover correctly invalidates them.
-  const [today, setToday] = useState(() => new Date());
+  const today = useToday();
 
   useEffect(() => { loadMenstrualData(); }, [loadMenstrualData]);
-
-  useEffect(() => {
-    const refresh = () => {
-      const now = new Date();
-      setToday((prev) =>
-        format(prev, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd') ? prev : now,
-      );
-    };
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') refresh();
-    });
-    const id = setInterval(refresh, 60_000);
-    return () => {
-      sub.remove();
-      clearInterval(id);
-    };
-  }, []);
 
   const profile = profiles.find((p) => p.id === profileId);
   const profileCycles = useMemo(() => cycles.filter((c) => c.profileId === profileId), [cycles, profileId]);

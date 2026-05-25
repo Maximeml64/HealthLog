@@ -12,6 +12,7 @@ import {
   Alert,
   Switch,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,6 +23,7 @@ import { Card, Button, Avatar, EmptyState } from '../components/UI';
 import { generateId, formatDate } from '../utils/helpers';
 import { DateTimeField } from '../components/DateTimeField';
 import { requestPermissions } from '../services/NotificationService';
+import { haptic } from '../utils/haptics';
 
 function recurrenceShortLabel(r: RecurrenceRule): string {
   const n = r.interval;
@@ -34,9 +36,15 @@ function recurrenceShortLabel(r: RecurrenceRule): string {
 }
 
 export default function RemindersScreen() {
-  const { profiles, reminders, upsertReminder, deleteReminder } = useAppStore();
+  const { profiles, reminders, upsertReminder, deleteReminder, loadAll } = useAppStore();
   const [modalVisible, setModalVisible] = useState(false);
   const [editReminder, setEditReminder] = useState<Reminder | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try { await loadAll(); } finally { setRefreshing(false); }
+  };
 
   const [form, setForm] = useState({
     profile_id: '',
@@ -117,10 +125,11 @@ export default function RemindersScreen() {
     const reminder: Reminder = editReminder
       ? {
           ...editReminder,
-          title: form.title,
-          body: form.body,
+          title: form.title.trim(),
+          body: form.body.trim(),
           scheduled_at: scheduled.toISOString(),
           profile_id: form.profile_id,
+          is_recurring: isRecurring,
           recurrence,
         }
       : {
@@ -145,7 +154,11 @@ export default function RemindersScreen() {
   const handleDelete = (r: Reminder) => {
     Alert.alert('Supprimer ce rappel ?', '', [
       { text: 'Annuler', style: 'cancel' },
-      { text: 'Supprimer', style: 'destructive', onPress: () => deleteReminder(r.id) },
+      {
+        text: 'Supprimer',
+        style: 'destructive',
+        onPress: () => { haptic.warning(); void deleteReminder(r.id); },
+      },
     ]);
   };
 
@@ -153,12 +166,15 @@ export default function RemindersScreen() {
     await upsertReminder({ ...r, active: !r.active });
   };
 
-  const upcoming = reminders.filter((r) => new Date(r.scheduled_at) > new Date()).sort(
-    (a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
-  );
-  const past = reminders.filter((r) => new Date(r.scheduled_at) <= new Date()).sort(
-    (a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()
-  );
+  // A recurring active reminder is always "upcoming" regardless of its initial
+  // scheduled_at — what matters is that future occurrences keep firing.
+  const now = new Date();
+  const upcoming = reminders
+    .filter((r) => (r.recurrence != null && r.active) || new Date(r.scheduled_at) > now)
+    .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+  const past = reminders
+    .filter((r) => r.recurrence == null && new Date(r.scheduled_at) <= now)
+    .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
 
   const getProfile = (id: string) => profiles.find((p) => p.id === id);
 
@@ -216,7 +232,13 @@ export default function RemindersScreen() {
         <Button label="+ Créer" onPress={openCreate} size="sm" />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+        }
+      >
         {reminders.length === 0 ? (
           <EmptyState
             emoji="🔔"

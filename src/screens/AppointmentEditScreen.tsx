@@ -4,7 +4,9 @@ import React, { useMemo, useState } from 'react';
 import { Alert, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useMenstrualStore } from '../stores/useMenstrualStore';
 import type { PregnancyData } from '../types';
 import { DateTimeField } from '../components/DateTimeField';
@@ -27,10 +29,9 @@ const APPT_TYPES: { type: ApptType; label: string; icon: string }[] = [
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function AppointmentEditScreen() {
-  const navigation = useNavigation<any>();
-  const { pregnancyId, appointmentId, prefillType } = useRoute<any>().params as {
-    pregnancyId: string; appointmentId?: string; prefillType?: string;
-  };
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'AppointmentEditScreen'>>();
+  const { pregnancyId, appointmentId, prefillType } = route.params;
 
   const { pregnancies, addAppointment, updateAppointment, removeAppointment } = useMenstrualStore();
 

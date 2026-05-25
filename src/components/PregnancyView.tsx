@@ -5,9 +5,12 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import Svg, { Circle } from 'react-native-svg';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useAppStore } from '../stores/useAppStore';
 import { useMenstrualStore } from '../stores/useMenstrualStore';
 import { getPregnancyTrimester, getPregnancyWeek } from '../utils/menstrualCalc';
+import { useToday } from '../utils/useToday';
 import type { PregnancyData } from '../types';
 import { Colors, Radius, Spacing, Typography } from '../utils/theme';
 import { Card } from './UI';
@@ -39,7 +42,7 @@ const TRIMESTER_RANGES = [
 interface PregnancyViewProps {
   profileId: string;
   pregnancy: PregnancyData;
-  navigation: any;
+  navigation: NativeStackNavigationProp<RootStackParamList>;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -50,7 +53,7 @@ export const PregnancyView: React.FC<PregnancyViewProps> = ({ profileId, pregnan
   const { updatePregnancy } = useMenstrualStore();
 
   const profile = profiles.find((p) => p.id === profileId);
-  const today = new Date();
+  const today = useToday();
   const week = getPregnancyWeek(pregnancy, today);
   const trimester = getPregnancyTrimester(pregnancy, today);
   const progress = Math.min(week / 40, 1);
