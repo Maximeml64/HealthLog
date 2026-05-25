@@ -22,6 +22,9 @@ ios/
 # Metro
 .metro-health-check*
 
+# Yarn lockfile — this project uses npm (see package-lock.json)
+yarn.lock
+
 # Debug
 npm-debug.*
 yarn-debug.*

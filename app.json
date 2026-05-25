@@ -14,7 +14,6 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.maximeml.healthlog",
-      "buildNumber": "1",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Healthlog accède à votre photothèque pour vous permettre de joindre des photos à vos événements de santé (ordonnances, certificats, photos de symptômes).",
         "NSCameraUsageDescription": "Healthlog accède à votre appareil photo pour vous permettre de prendre des photos directement à associer à vos événements de santé.",
