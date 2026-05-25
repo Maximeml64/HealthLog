@@ -1,61 +1,57 @@
-# CLAUDE.md
+# Healthlog — Notes spécifiques à l'app
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Commands
-
-```bash
-npm start          # Start Expo dev server (clears cache)
-npm run android    # Launch on Android simulator/device
-npm run ios        # Launch on iOS simulator/device
-```
-
-There is no lint, test, or production build command configured.
+> Le standard général React Native/Expo est dans `../CLAUDE.md`. Ce fichier ne contient que ce qui est **propre à Healthlog** ou qui **dévie** du standard.
 
 ## Architecture
 
-**Healthlog** is a French-language React Native family health journal app built with Expo. All data is stored locally — there is no backend.
+**Healthlog** est un journal de santé familial en français. **100% local**, pas de backend. Pas de sync multi-device.
 
-### State & Persistence
+### Stack — déviations vs standard global
 
-The entire app state lives in a single Zustand store (`src/stores/useAppStore.ts`): profiles, health events, reminders, and settings. Persistence is handled by `src/services/StorageService.ts` via AsyncStorage (JSON key-value). The store loads from storage on app init in `App.tsx`.
+| Couche | Choix Healthlog | Différence vs standard |
+|---|---|---|
+| Routing | **React Navigation 7** (`native-stack` + `bottom-tabs`) | Standard recommande expo-router 6 |
+| Build mode | **EAS Dev Build** (norme depuis mai 2026) | OK avec standard |
+| State | **Zustand vanilla** (sans middleware persist) | Standard recommande `persist` middleware |
+| Persistance | **AsyncStorage manuel** via `StorageService` | Pas de `persist` middleware Zustand |
+| Validation | **Pas de Zod** | Standard recommande Zod sur entrées |
+| Monitoring | **Sentry actif** | OK avec standard |
 
-### Data Model (`src/types/index.ts`)
+### Pourquoi React Navigation et pas expo-router
 
-- **Profile** — a household member (self, child, partner, parent, etc.) with avatar, color, birth date
-- **HealthEvent** — a timestamped entry with one of 11 types: symptom, temperature, medication, appointment, vaccine, weight, height, sleep, digestion, appetite, mood, or note. Events carry type-specific metadata (e.g., dosage, temperature method, appointment location) and optional attachments
-- **Reminder** — a scheduled notification linked to a profile; can recur
-- **AppSettings** — notification toggle, theme, premium flag, legal acceptance
+Historique : `expo-router 6` + Expo Go SDK 54 sur iOS donnait le bug `getDevServer is not a function`. React Navigation était le contournement validé. **Depuis le passage à EAS Dev Build (mai 2026), ce bug n'est plus un blocker** — mais migrer Healthlog vers expo-router reste hors scope sans demande explicite (le coût de refacto dépasse le bénéfice). Pas de dossier `app/`. Pas de structure compatible expo-router.
 
-### Navigation (`src/navigation/RootNavigator.tsx`)
+Point d'entrée : `index.js` → `App.tsx` → `NavigationContainer` + `RootNavigator`.
 
-Bottom tab navigator (Accueil, Profils, Historique, Rappels, Réglages) with a native stack on top for detail/modal screens (EventDetailScreen, ProfileDetailScreen).
+## State & Persistance
 
-### Services
+L'app a un **store Zustand unique** : `src/stores/useAppStore.ts` qui contient profils, événements santé, rappels, settings. La persistance est gérée par `src/services/StorageService.ts` via AsyncStorage (clé-valeur JSON). Le store charge depuis le storage au démarrage dans `App.tsx`.
 
-- `StorageService` — AsyncStorage CRUD for all entity types; also handles `exportAllData()` / `importAllData()` (premium feature)
-- `NotificationService` — thin wrapper around Expo Notifications; schedules and cancels reminders
-- `SummaryService` — generates health summaries for a date range (temperature range, event breakdown, medications, appointments)
+**Conséquence importante** : tout changement de schéma sur le store demande une logique de migration manuelle dans `StorageService` (pas de version bump automatique comme avec `persist`).
 
-### UI
+## Data Model (`src/types/index.ts`)
 
-Shared design tokens are in `src/utils/theme.ts` (warm beige/coral palette: background `#FFF8F0`, accent `#FF6B6B`). Base UI primitives (Card, Avatar, SectionHeader, etc.) live in `src/components/UI.tsx`. All user-facing text is in French; dates use `date-fns` with the `fr` locale.
+- **Profile** — membre du foyer (soi, enfant, partenaire, parent...) avec avatar, couleur, date de naissance
+- **HealthEvent** — entrée datée, un des 11 types : `symptom`, `temperature`, `medication`, `appointment`, `vaccine`, `weight`, `height`, `sleep`, `digestion`, `appetite`, `mood`, `note`. Chaque type a sa metadata (dosage, méthode de prise de température, lieu de rdv...) + attachments optionnels
+- **Reminder** — notification planifiée liée à un profil ; peut être récurrente
+- **AppSettings** — toggle notifications, thème, flag premium, acceptation légale
 
-## Key Conventions
+## Navigation (`src/navigation/RootNavigator.tsx`)
 
-- All text and labels are in French.
-- TypeScript strict mode is on — avoid `any`.
-- New event types require updates in: `src/types/index.ts` (union type), `AddEventModal.tsx` (form fields), `EventCard.tsx` (display), and `SummaryService.ts` if aggregation is needed.
-- Adding a new persisted field requires updating both the type definition and `StorageService` migration logic if existing stored data must be preserved.
+Bottom tab navigator (Accueil, Profils, Historique, Rappels, Réglages) avec native stack par-dessus pour écrans détail/modal (`EventDetailScreen`, `ProfileDetailScreen`).
 
-## Conventions critiques
+## Services
 
-**Navigation** — Utiliser EXCLUSIVEMENT React Navigation (`native-stack` + `bottom-tabs`). Ne JAMAIS utiliser `expo-router` : il provoque un bug `getDevServer is not a function` avec Expo Go SDK 54 sur iOS.
+- `StorageService` — CRUD AsyncStorage pour tous les types d'entités ; gère aussi `exportAllData()` / `importAllData()` (feature premium)
+- `NotificationService` — wrapper fin autour d'Expo Notifications ; planifie et annule les rappels
+- `SummaryService` — génère des résumés santé sur une plage de dates (range température, breakdown événements, médicaments, rdv)
 
-**Installation** — Toujours installer les dépendances avec `npm install --legacy-peer-deps` à cause de conflits de peer deps sur `@types/react`.
+## UI
 
-**Architecture** — Pas de dossier `app/`. Le point d'entrée est `index.js` → `App.tsx` → `NavigationContainer` + `RootNavigator`. Ne pas créer de structure de fichiers compatible expo-router.
+Design tokens dans `src/utils/theme.ts` (palette beige/corail chaud : background `#FFF8F0`, accent `#FF6B6B`). Primitives UI (Card, Avatar, SectionHeader...) dans `src/components/UI.tsx`. Tout le texte est en français ; dates avec `date-fns` locale `fr`.
 
-**Stockage** — AsyncStorage uniquement. Ne pas introduire SQLite ou tout autre moteur de base de données.
+## Conventions spécifiques à Healthlog
 
-**Tests** — L'app est testée sur iPhone physique via Expo Go (QR code). Aucun simulateur disponible.
+- **Ajouter un nouveau type d'événement** demande des updates dans : `src/types/index.ts` (union type), `AddEventModal.tsx` (champs form), `EventCard.tsx` (display), et `SummaryService.ts` si agrégation nécessaire.
+- **Ajouter un champ persisté** demande de mettre à jour le type ET la logique de migration de `StorageService` si on veut préserver les données existantes en prod.
+- **Pas de SQLite ni d'autre moteur DB**. AsyncStorage uniquement.
