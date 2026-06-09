@@ -16,10 +16,47 @@ import { Colors, Spacing } from './src/utils/theme';
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-  tracesSampleRate: 1.0,
+  // Disabled: Healthlog is 100% local, no backend calls to trace.
+  // Performance traces would only carry app-internal spans that may
+  // include user content via captured props/state.
+  tracesSampleRate: 0,
   enableAutoSessionTracking: true,
   sendDefaultPii: false,
   enabled: !__DEV__,
+  maxBreadcrumbs: 50,
+
+  beforeBreadcrumb(breadcrumb) {
+    // Drop console breadcrumbs entirely. console.log/warn/error in this
+    // app may include user content (profile names, medication labels,
+    // symptoms, notes). Safer to never ship them to Sentry.
+    if (breadcrumb.category === 'console') return null;
+    return breadcrumb;
+  },
+
+  beforeSend(event) {
+    // Never ship user identity, even though sendDefaultPii is false.
+    if (event.user) delete event.user;
+
+    // Strip auto-captured app state — defense against a future
+    // Sentry.setContext('state', store) leaking the whole store.
+    if (event.contexts && 'state' in event.contexts) {
+      delete (event.contexts as Record<string, unknown>).state;
+    }
+
+    // Truncate long exception messages. Real stack messages are short;
+    // long ones often come from `throw new Error(JSON.stringify(...))`
+    // or templated strings that embed user content.
+    event.exception?.values?.forEach((v) => {
+      if (v.value && v.value.length > 300) {
+        v.value = v.value.slice(0, 300) + '… [truncated]';
+      }
+    });
+    if (event.message && typeof event.message === 'string' && event.message.length > 300) {
+      event.message = event.message.slice(0, 300) + '… [truncated]';
+    }
+
+    return event;
+  },
 });
 
 const NavTheme = {
