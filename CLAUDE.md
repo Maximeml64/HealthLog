@@ -1,57 +1,41 @@
-# Healthlog — Notes spécifiques à l'app
+# Healthlog — CLAUDE.md
 
-> Le standard général React Native/Expo est dans `../CLAUDE.md`. Ce fichier ne contient que ce qui est **propre à Healthlog** ou qui **dévie** du standard.
+## Rôle
+Journal santé familial multi-profils (React Native/Expo, iOS), **100 % local** (aucun backend). Profils du foyer, événements santé horodatés, ordonnances/médicaments, suivi menstruel/grossesse/TTC, rappels, verrou Face ID. Textes en **français**. Bundle `com.maximeml.healthlog` — **soumission App Store en préparation** (ascAppId 6764234021).
 
-## Architecture
+## Stack figée (NE PAS migrer sans demande explicite)
+**React Navigation 7** (native-stack + bottom-tabs) — **expo-router banni** (historiquement bug `getDevServer` en Expo Go ; maintenu banni pour coût de refacto). **Zustand 5 sans `persist`** (3 stores, persistance manuelle). AsyncStorage + **expo-secure-store** (notes sensibles). RevenueCat 10, **Sentry 8 durci** (voir Pièges), date-fns, jszip (backups), chart-kit + svg. TypeScript ~5.9 strict. **EAS Dev Build est la norme** (`expo-dev-client` installé) — plus Expo Go.
+> ⚠️ **Mélange SDK 54/55 NON résolu** : `expo ~54.0.0` mais `expo-build-properties`/`expo-constants`/`expo-document-picker`/`expo-secure-store` en `^55.0.x` — risque au prebuild/build EAS.
 
-**Healthlog** est un journal de santé familial en français. **100% local**, pas de backend. Pas de sync multi-device.
+## Commandes
+```bash
+npm install                 # .npmrc force legacy-peer-deps=true
+npm start                   # expo start --clear
+npm run ios / android       # expo run:ios / run:android (Dev Build)
+npm run lint                # expo lint (ESLint 9 flat config)
+npx tsc --noEmit            # typecheck — seul check (aucun framework de test)
+eas build --profile development|preview|production --platform ios   # SENTRY_DISABLE_AUTO_UPLOAD=true partout
+```
 
-### Stack — déviations vs standard global
+## Persistance — 3 mécanismes, tous obligatoires
+1. **`StorageService` + mutex global** : TOUTES les écritures passent par l'unique `writeMutex` (AsyncMutex) — une écriture AsyncStorage directe sur une clé de StorageService réintroduit les races read-modify-write que le mutex élimine (justification en commentaire dans le fichier).
+2. **`SchemaMigration`** (service) : version sous `@healthlog/schema_version` (`CURRENT_VERSION=1`), `runMigrations()` appelé dans App.tsx AVANT `loadAll`. **Tout changement de schéma persisté = bump version + step idempotent dans ce registre**, plus seulement une retouche de StorageService.
+3. **Notes sensibles (events, profils ET ordonnances)** : `expo-secure-store` via `SecureNotesService` (`entityType: 'event' | 'profile' | 'prescription'`), JAMAIS AsyncStorage — StorageService strippe le champ notes avant chaque setItem. `MAX_NOTE_CHARS=600` est lié à la limite ~2048 octets/clé de SecureStore.
+Divers : `useMenstrualStore` écrit AsyncStorage en direct ; lecture des metadata d'events via `utils/safeParse.ts` (convention pour toute nouvelle lecture) ; `constants/limits.ts` centralise les caps techniques (`MAX_NOTIFICATIONS_PER_REMINDER=60` — plafond iOS 64 notifs pendantes, re-planification à chaque lancement ; `RECURRING_HORIZON_DAYS=365` ; `DRAFT_AUTOSAVE_MS=800` ; ⚠️ `MAX_PHOTOS_PER_EVENT=5` y est **mort** — le vrai cap est le défaut `maxPhotos = 5` en dur dans `PhotoPicker.tsx`, la prop n'est jamais passée).
 
-| Couche | Choix Healthlog | Différence vs standard |
-|---|---|---|
-| Routing | **React Navigation 7** (`native-stack` + `bottom-tabs`) | Standard recommande expo-router 6 |
-| Build mode | **EAS Dev Build** (norme depuis mai 2026) | OK avec standard |
-| State | **Zustand vanilla** (sans middleware persist) | Standard recommande `persist` middleware |
-| Persistance | **AsyncStorage manuel** via `StorageService` | Pas de `persist` middleware Zustand |
-| Validation | **Pas de Zod** | Standard recommande Zod sur entrées |
-| Monitoring | **Sentry actif** | OK avec standard |
+## Structure
+- `src/screens/` = 17 (dont `LockScreen` — verrou **Face ID** : `expo-local-authentication`, setting `app_lock_enabled` défaut false, re-lock automatique au passage en background).
+- `src/services/` = 10 : Storage, SchemaMigration, Notification, Summary, Backup, Draft, PdfExport, Photo, Prescription, SecureNotes.
+- `src/stores/` = 3 : useAppStore, useMenstrualStore, usePremiumStore.
+- `navigation/RootNavigator.tsx` : 6 onglets (Accueil, Profils, Historique, Rappels, Ordonnances, Réglages) + 9 écrans stack. Onboarding conditionnel si `settings.legal_accepted` faux.
+- `types/index.ts` : `EventType` = 12 valeurs. Ajouter un type d'event = types + `EventForm` (+ éventuel catalogue de chips dans `constants/*Catalog.ts` — symptom/mood/sleep/digestion/appetite) + `EventCard` + `SummaryService`.
+- Config = `app.json` statique (pas d'app.config.ts).
 
-### Pourquoi React Navigation et pas expo-router
+## Pièges
+- **Sentry volontairement bridé (données de santé)** : `tracesSampleRate 0`, `sendDefaultPii false`, `beforeBreadcrumb` supprime TOUS les breadcrumbs console, `beforeSend` strip `event.user` + `contexts.state` + tronque à 300 chars. **Ne jamais ajouter de `Sentry.setContext`/breadcrumb avec du contenu utilisateur.** Init dans App.tsx uniquement, `enabled: !__DEV__`.
+- **Premium : AUCUNE feature réellement verrouillée.** Le bandeau Réglages promet « Profils illimités · Export PDF · Sauvegarde complète » mais backup/restore/export PDF ne testent jamais `isPremium` — marketing sans enforcement (le copy ne promet plus de chiffrement depuis 86b55af, et de fait les backups ZIP ne sont **pas chiffrés**). Le flux d'achat RevenueCat, lui, est réel (PaywallScreen purchase/restore, offres monthly/annual/lifetime, entitlement `premium`). Toute mise en place d'un vrai gating = décision produit Maxime, pas une initiative.
+- **Thème « Calm Medical »** (`src/utils/theme.ts`) : fond crème `#FBF8F3`, primary sauge `#3A6E5F`, accent terra `#C97A6A` ; splash/icônes en terracotta `#A35E50` (app.json). L'ancien blanc/bleu-marine et la palette beige/corail sont morts (les `#FF6B6B` restants sont fonctionnels, pas des vestiges : échelle de sévérité `INTENSITY_COLORS` dans healthColors.ts et palette d'avatars `PROFILE_COLORS` dans types/index.ts).
+- Backups ZIP versionnés : écriture v3, import accepte v1/v2/v3, restore avec choix remplacer/fusionner + double confirmation destructive. RevenueCat : `EXPO_PUBLIC_REVENUECAT_IOS_KEY` lue par usePremiumStore mais **absente de `.env.example`** (incomplet) ; garde isExpoGo conservée en défense.
 
-Historique : `expo-router 6` + Expo Go SDK 54 sur iOS donnait le bug `getDevServer is not a function`. React Navigation était le contournement validé. **Depuis le passage à EAS Dev Build (mai 2026), ce bug n'est plus un blocker** — mais migrer Healthlog vers expo-router reste hors scope sans demande explicite (le coût de refacto dépasse le bénéfice). Pas de dossier `app/`. Pas de structure compatible expo-router.
-
-Point d'entrée : `index.js` → `App.tsx` → `NavigationContainer` + `RootNavigator`.
-
-## State & Persistance
-
-L'app a un **store Zustand unique** : `src/stores/useAppStore.ts` qui contient profils, événements santé, rappels, settings. La persistance est gérée par `src/services/StorageService.ts` via AsyncStorage (clé-valeur JSON). Le store charge depuis le storage au démarrage dans `App.tsx`.
-
-**Conséquence importante** : tout changement de schéma sur le store demande une logique de migration manuelle dans `StorageService` (pas de version bump automatique comme avec `persist`).
-
-## Data Model (`src/types/index.ts`)
-
-- **Profile** — membre du foyer (soi, enfant, partenaire, parent...) avec avatar, couleur, date de naissance
-- **HealthEvent** — entrée datée, un des 11 types : `symptom`, `temperature`, `medication`, `appointment`, `vaccine`, `weight`, `height`, `sleep`, `digestion`, `appetite`, `mood`, `note`. Chaque type a sa metadata (dosage, méthode de prise de température, lieu de rdv...) + attachments optionnels
-- **Reminder** — notification planifiée liée à un profil ; peut être récurrente
-- **AppSettings** — toggle notifications, thème, flag premium, acceptation légale
-
-## Navigation (`src/navigation/RootNavigator.tsx`)
-
-Bottom tab navigator (Accueil, Profils, Historique, Rappels, Réglages) avec native stack par-dessus pour écrans détail/modal (`EventDetailScreen`, `ProfileDetailScreen`).
-
-## Services
-
-- `StorageService` — CRUD AsyncStorage pour tous les types d'entités ; gère aussi `exportAllData()` / `importAllData()` (feature premium)
-- `NotificationService` — wrapper fin autour d'Expo Notifications ; planifie et annule les rappels
-- `SummaryService` — génère des résumés santé sur une plage de dates (range température, breakdown événements, médicaments, rdv)
-
-## UI
-
-Design tokens dans `src/utils/theme.ts` (palette beige/corail chaud : background `#FFF8F0`, accent `#FF6B6B`). Primitives UI (Card, Avatar, SectionHeader...) dans `src/components/UI.tsx`. Tout le texte est en français ; dates avec `date-fns` locale `fr`.
-
-## Conventions spécifiques à Healthlog
-
-- **Ajouter un nouveau type d'événement** demande des updates dans : `src/types/index.ts` (union type), `AddEventModal.tsx` (champs form), `EventCard.tsx` (display), et `SummaryService.ts` si agrégation nécessaire.
-- **Ajouter un champ persisté** demande de mettre à jour le type ET la logique de migration de `StorageService` si on veut préserver les données existantes en prod.
-- **Pas de SQLite ni d'autre moteur DB**. AsyncStorage uniquement.
+## Repères
+EAS projectId `3aaf9d10-ef57-4233-9b2e-0441628a1568`. Submit iOS : ascAppId `6764234021` (eas.json). `.env.example` : vars Sentry (DSN, AUTH_TOKEN, ORG=2mldigital, PROJECT=healthlog) — y ajouter la clé RevenueCat à l'occasion.
