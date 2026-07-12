@@ -65,7 +65,7 @@ export default function LockScreen({ onUnlock }: Props) {
       </View>
       <Text style={styles.title}>Healthlog est verrouillé</Text>
       <Text style={styles.subtitle}>
-        Tes données santé sont protégées par Face ID.
+        Déverrouille avec Face ID pour ouvrir l'app.
       </Text>
       <TouchableOpacity
         style={[styles.btn, authenticating && styles.btnDisabled]}

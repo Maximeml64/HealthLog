@@ -25,7 +25,7 @@ const FEATURES = [
   { icon: '👨‍👩‍👧', label: 'Profils familiaux illimités' },
   { icon: '📋', label: 'Historique de santé sans limite' },
   { icon: '📄', label: 'Export PDF pour le médecin' },
-  { icon: '🔒', label: 'Sauvegardes chiffrées' },
+  { icon: '💾', label: 'Sauvegarde et restauration' },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

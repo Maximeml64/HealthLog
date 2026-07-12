@@ -227,7 +227,7 @@ export default function SettingsScreen() {
             <View style={styles.premiumBannerBody}>
               <Text style={styles.premiumBannerTitle}>Devenir Premium</Text>
               <Text style={styles.premiumBannerSub}>
-                Profils illimités · Export PDF · Sauvegardes chiffrées
+                Profils illimités · Export PDF · Sauvegarde complète
               </Text>
             </View>
             <ChevronRight size={20} color={Colors.white + 'CC'} strokeWidth={2.2} />
